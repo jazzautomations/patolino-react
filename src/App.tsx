@@ -1,6 +1,42 @@
-import { useState } from 'react'
+import { useState, useMemo, useRef } from 'react'
+import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'framer-motion'
+import { 
+  Shield, 
+  Check, 
+  AlertCircle, 
+  MessageSquare, 
+  Zap, 
+  Lock, 
+  Globe, 
+  BarChart3,
+  Server,
+  ArrowRight,
+  ChevronDown,
+  Monitor,
+  Bug,
+  Eye,
+  Radar,
+  Terminal,
+  Activity,
+  Cpu,
+  Database,
+  Wifi
+} from 'lucide-react'
+import { clsx, type ClassValue } from 'clsx'
+import { twMerge } from 'tailwind-merge'
 
-// ═══ TYPES ═══
+// ============================================================
+// UTILS
+// ============================================================
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+// ============================================================
+// TYPES
+// ============================================================
+
 type FormData = {
   name: string
   company: string
@@ -18,7 +54,10 @@ type Answers = {
   q5?: string
 }
 
-// ═══ CONSTANTS ═══
+// ============================================================
+// CONSTANTS
+// ============================================================
+
 const SCORE_WEIGHTS: Record<string, Record<string, number>> = {
   q1: { '1-10': 30, '11-50': 50, '51-200': 70, '200+': 90 },
   q2: { 'sim': 100, 'nao-sei': 70, 'nao': 30 },
@@ -77,56 +116,141 @@ const QUESTIONS = [
   }
 ]
 
-// ═══ COMPONENTS ═══
-function ShieldIcon({ className = "" }: { className?: string }) {
+// ============================================================
+// COMPONENTS
+// ============================================================
+
+// Floating Particles Background
+const FloatingParticles = () => {
+  const particles = useMemo(() => 
+    Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 3 + 1,
+      duration: Math.random() * 20 + 10,
+      delay: Math.random() * 5,
+      isAccent: Math.random() > 0.7
+    }))
+  , [])
+
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-    </svg>
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map(p => (
+        <motion.div
+          key={p.id}
+          className={cn(
+            "absolute rounded-full blur-sm",
+            p.isAccent ? "bg-accent" : "bg-primary"
+          )}
+          style={{
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            width: p.size,
+            height: p.size,
+            opacity: 0.2
+          }}
+          animate={{
+            y: [0, -30, 30, 0],
+            x: [0, 15, -15, 0],
+            opacity: [0.1, 0.3, 0.1]
+          }}
+          transition={{
+            duration: p.duration,
+            delay: p.delay,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+      ))}
+    </div>
   )
 }
 
-function CheckIcon({ className = "" }: { className?: string }) {
+// Radial Glow Component
+const RadialGlow = ({ 
+  className, 
+  color = "primary",
+  size = 400 
+}: { 
+  className?: string
+  color?: "primary" | "accent"
+  size?: number 
+}) => (
+  <motion.div
+    className={cn(
+      "absolute rounded-full pointer-events-none radial-glow",
+      color === "primary" ? "radial-glow-primary" : "radial-glow-accent",
+      className
+    )}
+    style={{ width: size, height: size }}
+    animate={{
+      scale: [1, 1.1, 1],
+      opacity: [0.12, 0.18, 0.12]
+    }}
+    transition={{
+      duration: 8,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }}
+  />
+)
+
+// Section Component
+const Section = ({ 
+  children, 
+  className, 
+  id,
+  withGlow = false 
+}: { 
+  children: React.ReactNode
+  className?: string
+  id?: string
+  withGlow?: boolean
+}) => (
+  <section 
+    id={id} 
+    className={cn("py-24 md:py-32 relative overflow-hidden", className)}
+  >
+    {withGlow && (
+      <>
+        <RadialGlow className="-top-40 -left-40" size={600} />
+        <RadialGlow color="accent" className="top-1/2 -right-40" size={500} />
+      </>
+    )}
+    <div className="max-w-[1280px] mx-auto px-6 relative z-10">
+      {children}
+    </div>
+  </section>
+)
+
+// WhatsApp Icon
+const WhatsAppIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={cn("w-5 h-5", className)}>
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.876 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.377l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.511-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.884 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.411z"/>
+  </svg>
+)
+
+// Animated Status Dot
+const StatusDot = ({ color = "success" }: { color?: "success" | "warning" | "danger" }) => {
+  const colors = {
+    success: "bg-emerald-400 shadow-emerald-400/50",
+    warning: "bg-amber-400 shadow-amber-400/50",
+    danger: "bg-red-400 shadow-red-400/50"
+  }
+  
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
-      <polyline points="20 6 9 17 4 12"/>
-    </svg>
+    <span className={cn(
+      "w-2 h-2 rounded-full animate-pulse shadow-lg",
+      colors[color]
+    )} />
   )
 }
 
-function AlertCircleIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
-    </svg>
-  )
-}
+// ============================================================
+// MAIN APP
+// ============================================================
 
-function CartIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M3 6l3 1 .75 9.34a2 2 0 002 1.66h8.5a2 2 0 002-1.66L20 7H6.25M10 21a1 1 0 11-2 0 1 1 0 012 0zm8 0a1 1 0 11-2 0 1 1 0 012 0z"/>
-    </svg>
-  )
-}
-
-function ClockIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
-      <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-    </svg>
-  )
-}
-
-function WhatsAppIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.876 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.377l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.511-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.884 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.411z"/>
-    </svg>
-  )
-}
-
-// ═══ MAIN APP ═══
 export default function App() {
   const [currentStep, setCurrentStep] = useState(0)
   const [answers, setAnswers] = useState<Answers>({})
@@ -141,9 +265,19 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [score, setScore] = useState(0)
   const [showQuiz, setShowQuiz] = useState(false)
-  const [openFaq, setOpenFaq] = useState<number | null>(null)
 
-  const totalSteps = QUESTIONS.length + 2 // questions + form + result
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { scrollYProgress } = useScroll({ target: containerRef })
+  
+  // Parallax transforms
+  const heroY = useTransform(scrollYProgress, [0, 0.3], [0, 150])
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
+  const heroScale = useTransform(scrollYProgress, [0, 0.2], [1, 0.95])
+  
+  // Smooth spring for parallax
+  const smoothHeroY = useSpring(heroY, { stiffness: 100, damping: 30 })
+
+  const totalSteps = QUESTIONS.length + 2
 
   const calculateScore = (): number => {
     let total = 0
@@ -155,29 +289,21 @@ export default function App() {
     return Math.min(100, Math.max(0, Math.round(total / 5)))
   }
 
-  const getRiskLevel = (score: number) => {
-    if (score >= 80) return { text: 'Alto', color: '#ef4444', bg: 'linear-gradient(to right, #ef4444, #dc2626)' }
-    if (score >= 50) return { text: 'Médio', color: '#f59e0b', bg: 'linear-gradient(to right, #f59e0b, #d97706)' }
-    return { text: 'Baixo', color: '#4ade80', bg: 'linear-gradient(to right, #4ade80, #22c55e)' }
-  }
-
   const handleAnswer = (questionId: string, value: string) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }))
-    // Auto advance after selection
     setTimeout(() => {
       const questionIndex = QUESTIONS.findIndex(q => q.id === questionId)
       if (questionIndex < QUESTIONS.length - 1) {
-        setCurrentStep(questionIndex + 2) // +2 because step is 1-indexed
+        setCurrentStep(questionIndex + 2)
       } else {
-        setCurrentStep(QUESTIONS.length + 1) // Go to form
+        setCurrentStep(QUESTIONS.length + 1)
       }
-    }, 300)
+    }, 400)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-
     const finalScore = calculateScore()
     
     try {
@@ -192,7 +318,6 @@ export default function App() {
         })
       })
 
-      // Check if response is ok before parsing
       if (!response.ok) {
         const errorText = await response.text()
         console.error('HTTP Error:', response.status, errorText)
@@ -204,13 +329,12 @@ export default function App() {
       
       if (result.success) {
         setScore(finalScore)
-        setCurrentStep(totalSteps) // Show result
+        setCurrentStep(totalSteps)
       } else {
         alert('Erro: ' + (result.error || 'Erro ao salvar'))
       }
     } catch (error) {
       console.error('Network/Parse Error:', error)
-      // Check if it's a CORS or network error
       if (error instanceof TypeError && error.message.includes('fetch')) {
         alert('Erro de conexão. Verifique sua internet ou tente novamente.')
       } else {
@@ -221,553 +345,707 @@ export default function App() {
     }
   }
 
-  const progress = Math.round((currentStep / (totalSteps - 1)) * 100)
-  const risk = getRiskLevel(score)
+  const risk = useMemo(() => {
+    if (score >= 80) return { 
+      text: 'ALTO', 
+      color: '#ef4444', 
+      bg: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+      badge: 'risk-badge-high' as const
+    }
+    if (score >= 50) return { 
+      text: 'MÉDIO', 
+      color: '#f59e0b', 
+      bg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      badge: 'risk-badge-medium' as const
+    }
+    return { 
+      text: 'BAIXO', 
+      color: '#10b981', 
+      bg: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+      badge: 'risk-badge-low' as const
+    }
+  }, [score])
 
-  // ═══ RENDER ═══
+  // ============================================================
+  // RENDER RESULT
+  // ============================================================
+  
   if (currentStep === totalSteps) {
-    // RESULT STEP
     return (
-      <div className="min-h-screen bg-[#09090b] flex items-center justify-center p-6 text-left">
-        <div className="max-w-md w-full">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-[rgba(220,38,38,0.1)] flex items-center justify-center">
-              <ShieldIcon className="w-6 h-6 text-[#ef4444]" />
+      <div className="min-h-screen bg-background grid-bg-animated flex items-center justify-center p-6">
+        <div className="noise-overlay" />
+        <div className="scanline" />
+        <FloatingParticles />
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 30, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="max-w-lg w-full relative"
+        >
+          {/* Header Badge */}
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex items-center justify-center gap-3 mb-8"
+          >
+            <div className="px-4 py-2 rounded-full glass flex items-center gap-2">
+              <StatusDot color="success" />
+              <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-[0.2em]">
+                Agentes de IA Ativos
+              </span>
             </div>
-            <div>
-              <h3 className="text-xl font-bold tracking-tight">Auditoria Técnica Iniciada</h3>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="w-1.5 h-1.5 bg-[#4ade80] rounded-full animate-pulse"></span>
-                <span className="text-[10px] font-mono text-[#4ade80] uppercase tracking-wider">Agentes de IA em campo</span>
+          </motion.div>
+
+          {/* Main Card */}
+          <div className="border-animated p-8">
+            <div className="flex items-center gap-4 mb-6">
+              <motion.div 
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center shadow-lg shadow-primary/30"
+              >
+                <Shield className="w-7 h-7 text-white" />
+              </motion.div>
+              <div>
+                <h2 className="text-2xl font-bold text-white tracking-tight">
+                  Auditoria Técnica Iniciada
+                </h2>
+                <p className="text-sm text-zinc-400">
+                  Mapeamento de perímetro em andamento
+                </p>
               </div>
             </div>
-          </div>
-          
-          <div className="space-y-6">
-            <p className="text-[15px] text-[#a1a1aa] leading-relaxed">
-              Como você autorizou, nossos agentes já iniciaram os testes de intrusão e mapeamento de perímetro no seu site. 
+
+            <p className="text-zinc-400 leading-relaxed mb-6">
+              Acesso autorizado com sucesso. Nossos agentes de IA já iniciaram a varredura 
+              de vulnerabilidades estruturais no seu domínio.
             </p>
 
-            <div className="p-6 rounded-2xl bg-[#0f0f0f] border border-[#2a2a32] relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-3 opacity-10">
-                <ShieldIcon className="w-20 h-20" />
+            {/* Risk Badge */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 }}
+              className="mb-6"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-mono text-zinc-500 uppercase tracking-wider">
+                  Diagnóstico Preliminar
+                </span>
+                <span className={cn("risk-badge", risk.badge)}>
+                  {risk.text} RISCO
+                </span>
               </div>
               
-              <div className="relative z-10">
-                <div className="text-[10px] font-mono text-[#71717a] uppercase tracking-widest mb-1">Status Preliminar</div>
-                <div className="text-2xl font-bold font-mono mb-4" style={{ color: risk.color }}>
-                  {risk.text.toUpperCase()} RISCO
-                </div>
-                
-                <div className="h-1 bg-[#1f1f27] rounded-full overflow-hidden mb-6">
-                  <div 
-                    className="h-full rounded-full transition-all duration-1000"
-                    style={{ width: score + '%', background: risk.bg }}
-                  />
-                </div>
-
-                <div className="space-y-2.5">
-                  <div className="flex items-center gap-3 text-[13px] text-[#d1d5db]">
-                    <div className="w-1 h-1 bg-[#ef4444] rounded-full"></div>
-                    <span>Identificando portas e serviços expostos...</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-[13px] text-[#d1d5db]">
-                    <div className="w-1 h-1 bg-[#ef4444] rounded-full"></div>
-                    <span>Mapeando vulnerabilidades de injeção...</span>
-                  </div>
-                </div>
+              <div className="h-2 bg-surface-3 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${score}%` }}
+                  transition={{ duration: 1.5, ease: "circOut", delay: 0.5 }}
+                  className="h-full rounded-full"
+                  style={{ background: risk.bg }}
+                />
               </div>
+            </motion.div>
+
+            {/* Processing Status */}
+            <div className="space-y-3 mb-8">
+              {[
+                { icon: <Radar className="w-4 h-4" />, text: "Mapeando portas e serviços expostos", done: true },
+                { icon: <Bug className="w-4 h-4" />, text: "Identificando vetores de injeção", done: true },
+                { icon: <Database className="w-4 h-4" />, text: "Analisando estrutura de dados", done: false }
+              ].map((item, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6 + i * 0.1 }}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-surface-2/50"
+                >
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center",
+                    item.done ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent animate-pulse"
+                  )}>
+                    {item.icon}
+                  </div>
+                  <span className="text-sm text-zinc-300">{item.text}</span>
+                  {item.done && (
+                    <Check className="w-4 h-4 text-primary ml-auto" />
+                  )}
+                </motion.div>
+              ))}
             </div>
 
-            <div className="space-y-4">
-              <p className="text-[15px] text-white font-medium leading-relaxed">
-                Nossa IA está processando os dados brutos agora. Chame no WhatsApp para agendarmos a call onde entrego seu <strong>relatório completo e auditoria de segurança</strong>.
-              </p>
-              
-              <a 
+            {/* CTA */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9 }}
+              className="space-y-4"
+            >
+              <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
+                <p className="text-sm text-white leading-relaxed">
+                  O processamento está em andamento. Agende sua call para receber o 
+                  <strong className="text-primary"> relatório consolidado</strong> e o 
+                  <strong className="text-primary"> plano de mitigação</strong>.
+                </p>
+              </div>
+
+              <motion.a
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 href={`https://wa.me/5511910376040?text=${encodeURIComponent(
-                  `Autorizei a auditoria técnica na Patolino.Security e o diagnóstico preliminar acusou risco ${risk.text.toUpperCase()}.\\n\\n` +
-                  `\ud83c\udfe2 Empresa: ${formData.company}\\n` +
-                  `\ud83c\udf10 Site: ${formData.site_url || 'Não informado'}\\n\\n` +
-                  `Quero agendar a call para receber o relatório completo e a auditoria de segurança que está sendo gerada.`
+                  `Autorizei a auditoria técnica na Patolino.Security e o diagnóstico preliminar acusou risco ${risk.text}.\n\n` +
+                  `Empresa: ${formData.company}\n` +
+                  `Site: ${formData.site_url || 'Não informado'}\n\n` +
+                  `Quero agendar a call para receber o relatório completo e a auditoria de segurança.`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 w-full py-4 rounded-xl text-base font-bold text-white bg-[#25D366] hover:bg-[#20BA5A] transition-all shadow-[0_10px_30px_rgba(37,211,102,0.15)]"
+                className="btn btn-whatsapp w-full py-4 rounded-xl text-base shimmer"
               >
-                <WhatsAppIcon className="w-5 h-5" />
+                <WhatsAppIcon />
                 Agendar Entrega do Relatório
-              </a>
-              
-              <div className="flex items-center justify-center gap-4 text-[10px] text-[#52525b] font-bold uppercase tracking-widest">
-                <span>Call de 15 Minutos</span>
-                <span className="w-1 h-1 bg-[#2a2a32] rounded-full"></span>
-                <span>Auditoria Técnica</span>
-                <span className="w-1 h-1 bg-[#2a2a32] rounded-full"></span>
-                <span>Plano de Mitigação</span>
-              </div>
-            </div>
+              </motion.a>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       </div>
     )
   }
 
+  // ============================================================
+  // RENDER QUIZ
+  // ============================================================
+  
   if (showQuiz) {
-    // QUIZ MODE
     const currentQuestion = QUESTIONS[currentStep - 1]
     const isFormStep = currentStep > QUESTIONS.length
+    const progress = Math.round((currentStep / (totalSteps - 1)) * 100)
 
     return (
-      <div className="min-h-screen bg-[#09090b]">
-        {/* Progress */}
-        <div className="sticky top-0 z-50 bg-[rgba(9,9,11,0.9)] backdrop-blur-lg border-b border-[#1f1f27] p-4">
-          <div className="max-w-lg mx-auto">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-[#71717a] font-mono">Progresso</span>
-              <span className="text-xs text-[#a1a1aa] font-mono">{progress}%</span>
+      <div className="min-h-screen bg-background grid-bg-animated">
+        <div className="noise-overlay" />
+        <div className="scanline" />
+
+        {/* Progress Header */}
+        <div className="fixed top-0 left-0 right-0 z-50 glass-heavy">
+          <div className="max-w-2xl mx-auto p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                  <Shield className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider">
+                  Análise em Progresso
+                </span>
+              </div>
+              <span className="text-xs font-mono text-primary">{progress}%</span>
             </div>
-            <div className="h-1 bg-[#1f1f27] rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-[#dc2626] to-[#ef4444] transition-all duration-300" style={{ width: progress + '%' }} />
+            <div className="progress-bar">
+              <motion.div 
+                className="progress-bar-fill bg-gradient-to-r from-primary-600 to-primary-400"
+                animate={{ width: `${progress}%` }}
+              />
             </div>
           </div>
         </div>
 
-        <div className="max-w-lg mx-auto p-6 pt-12">
-          {isFormStep ? (
-            // FORM
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <h2 className="text-2xl font-bold mb-6">Seus dados para o diagnóstico</h2>
-              
-              <input
-                type="text"
-                placeholder="Seu nome"
-                required
-                value={formData.name}
-                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-4 py-3 rounded-lg bg-[#111113] border border-[#2a2a32] text-white placeholder-[#71717a] focus:border-[#dc2626] focus:outline-none"
-              />
-              
-              <input
-                type="text"
-                placeholder="Nome da empresa"
-                required
-                value={formData.company}
-                onChange={e => setFormData(prev => ({ ...prev, company: e.target.value }))}
-                className="w-full px-4 py-3 rounded-lg bg-[#111113] border border-[#2a2a32] text-white placeholder-[#71717a] focus:border-[#dc2626] focus:outline-none"
-              />
-              
-              <input
-                type="email"
-                placeholder="E-mail corporativo"
-                required
-                value={formData.email}
-                onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                className="w-full px-4 py-3 rounded-lg bg-[#111113] border border-[#2a2a32] text-white placeholder-[#71717a] focus:border-[#dc2626] focus:outline-none"
-              />
-              
-              <input
-                type="tel"
-                placeholder="Telefone com DDD"
-                required
-                value={formData.phone}
-                onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                className="w-full px-4 py-3 rounded-lg bg-[#111113] border border-[#2a2a32] text-white placeholder-[#71717a] focus:border-[#dc2626] focus:outline-none"
-              />
-              
-              <input
-                type="url"
-                placeholder="Site da empresa (https://...)"
-                value={formData.site_url}
-                onChange={e => setFormData(prev => ({ ...prev, site_url: e.target.value }))}
-                className="w-full px-4 py-3 rounded-lg bg-[#111113] border border-[#2a2a32] text-white placeholder-[#71717a] focus:border-[#dc2626] focus:outline-none"
-              />
-
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  required
-                  checked={formData.authorize_test}
-                  onChange={e => setFormData(prev => ({ ...prev, authorize_test: e.target.checked }))}
-                  className="mt-1 w-4 h-4 accent-[#dc2626]"
-                />
-                <span className="text-sm text-[#d1d5db] leading-relaxed">
-                  <strong>Declaro que sou responsável pelo site informado acima</strong> e autorizo a realização de testes de segurança controlados.
-                </span>
-              </label>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3.5 rounded-xl text-base font-bold text-white bg-[#dc2626] hover:bg-[#ef4444] transition-all disabled:opacity-50"
+        <div className="max-w-2xl mx-auto p-6 pt-28">
+          <AnimatePresence mode="wait">
+            {isFormStep ? (
+              <motion.form 
+                key="form"
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -30 }}
+                onSubmit={handleSubmit} 
+                className="space-y-5"
               >
-                {isSubmitting ? 'Processando...' : 'Gerar Meu Diagnóstico →'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setCurrentStep(QUESTIONS.length)}
-                className="w-full py-2.5 text-sm text-[#a1a1aa] hover:text-white transition-colors"
-              >
-                ← Voltar
-              </button>
-            </form>
-          ) : (
-            // QUESTION
-            <div key={currentQuestion.id}>
-              <h2 className="text-xl font-bold mb-6">{currentQuestion.question}</h2>
-              
-              <div className="space-y-3">
-                {currentQuestion.options.map(option => (
-                  <button
-                    key={option.value}
-                    onClick={() => handleAnswer(currentQuestion.id, option.value)}
-                    className={`w-full p-4 rounded-lg border text-left transition-all ${
-                      answers[currentQuestion.id as keyof Answers] === option.value
-                        ? 'bg-[rgba(220,38,38,0.12)] border-[#dc2626] text-white'
-                        : 'bg-[#111113] border-[#2a2a32] text-[#d1d5db] hover:border-[#3a3a42]'
-                    }`}
+                <div className="text-center mb-10">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary/30"
                   >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
+                    <Terminal className="w-8 h-8 text-white" />
+                  </motion.div>
+                  <h2 className="text-3xl font-bold text-white mb-2">Finalizar Autorização</h2>
+                  <p className="text-zinc-400">Dados necessários para emissão do relatório técnico.</p>
+                </div>
 
-              {currentStep > 1 && (
-                <button
-                  onClick={() => setCurrentStep(prev => prev - 1)}
-                  className="mt-6 text-sm text-[#a1a1aa] hover:text-white transition-colors"
+                {[
+                  { id: 'name', type: 'text', placeholder: 'Seu nome completo', icon: <Globe className="w-4 h-4" /> },
+                  { id: 'company', type: 'text', placeholder: 'Nome da Empresa', icon: <Server className="w-4 h-4" /> },
+                  { id: 'email', type: 'email', placeholder: 'E-mail Corporativo', icon: <Wifi className="w-4 h-4" /> },
+                  { id: 'phone', type: 'tel', placeholder: 'WhatsApp (com DDD)', icon: <MessageSquare className="w-4 h-4" /> },
+                  { id: 'site_url', type: 'url', placeholder: 'URL do Site (https://...)', icon: <Shield className="w-4 h-4" /> }
+                ].map((field, i) => (
+                  <motion.div 
+                    key={field.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="relative group"
+                  >
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-primary transition-colors z-10">
+                      {field.icon}
+                    </div>
+                    <input
+                      type={field.type}
+                      placeholder={field.placeholder}
+                      required={field.id !== 'site_url'}
+                      value={formData[field.id as keyof FormData] as string}
+                      onChange={e => setFormData(prev => ({ ...prev, [field.id]: e.target.value }))}
+                      className="input-field"
+                    />
+                  </motion.div>
+                ))}
+
+                <motion.label 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="flex items-start gap-4 p-5 rounded-2xl glass-card cursor-pointer group hover:bg-surface-3/50 transition-colors"
                 >
-                  ← Voltar
+                  <input
+                    type="checkbox"
+                    required
+                    checked={formData.authorize_test}
+                    onChange={e => setFormData(prev => ({ ...prev, authorize_test: e.target.checked }))}
+                    className="mt-0.5 w-5 h-5 accent-primary rounded"
+                  />
+                  <span className="text-sm text-zinc-400 leading-relaxed group-hover:text-zinc-200 transition-colors">
+                    <strong className="text-white">Autorizo formalmente</strong> a realização de testes de intrusão 
+                    e varredura de segurança controlada no domínio informado.
+                  </span>
+                </motion.label>
+
+                <motion.button
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="btn btn-primary w-full py-4 rounded-xl text-base shimmer"
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      >
+                        <Activity className="w-5 h-5" />
+                      </motion.div>
+                      Iniciando Scan...
+                    </span>
+                  ) : (
+                    <>
+                      Autorizar e Gerar Auditoria <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </motion.button>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(QUESTIONS.length)}
+                  className="w-full py-3 text-xs text-zinc-500 hover:text-white transition-colors uppercase tracking-widest font-bold"
+                >
+                  Voltar
                 </button>
-              )}
-            </div>
-          )}
+              </motion.form>
+            ) : (
+              <motion.div 
+                key={currentStep}
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -30 }}
+                className="space-y-6"
+              >
+                <div className="text-center mb-8">
+                  <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-3 text-[10px] font-mono text-primary uppercase tracking-[0.2em] mb-6">
+                    <Cpu className="w-3 h-3" />
+                    Questão {currentStep}/{QUESTIONS.length}
+                  </span>
+                  <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+                    {currentQuestion.question}
+                  </h2>
+                </div>
+
+                <div className="space-y-3">
+                  {currentQuestion.options.map((option, i) => (
+                    <motion.button
+                      key={option.value}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      onClick={() => handleAnswer(currentQuestion.id, option.value)}
+                      className={cn(
+                        "w-full p-5 rounded-2xl border text-left transition-all duration-300 group",
+                        answers[currentQuestion.id as keyof Answers] === option.value
+                          ? 'glass-card border-primary/50 shadow-lg shadow-primary/10'
+                          : 'glass-card border-transparent hover:border-white/10'
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-base text-zinc-200 group-hover:text-white transition-colors">
+                          {option.label}
+                        </span>
+                        <div className={cn(
+                          "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300",
+                          answers[currentQuestion.id as keyof Answers] === option.value
+                            ? "border-primary bg-primary shadow-lg shadow-primary/30"
+                            : "border-zinc-700 group-hover:border-zinc-500"
+                        )}>
+                          {answers[currentQuestion.id as keyof Answers] === option.value && (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                            >
+                              <Check className="w-3 h-3 text-white" />
+                            </motion.div>
+                          )}
+                        </div>
+                      </div>
+                    </motion.button>
+                  ))}
+                </div>
+
+                {currentStep > 1 && (
+                  <button
+                    onClick={() => setCurrentStep(prev => prev - 1)}
+                    className="mt-8 text-xs text-zinc-500 hover:text-white transition-colors uppercase tracking-widest font-bold"
+                  >
+                    Voltar
+                  </button>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     )
   }
 
-  // LANDING PAGE
+  // ============================================================
+  // RENDER LANDING PAGE
+  // ============================================================
+  
   return (
-    <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] font-sans">
+    <div ref={containerRef} className="min-h-screen bg-background text-zinc-300 font-sans overflow-x-hidden">
+      <div className="noise-overlay" />
+      <div className="scanline" />
+      <FloatingParticles />
+      
       {/* NAV */}
-      <nav className="fixed top-0 w-full z-50 border-b border-[#1f1f27] bg-[rgba(9,9,11,0.7)] backdrop-blur-lg">
-        <div className="max-w-[1180px] mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-[6px] bg-[#dc2626] flex items-center justify-center">
-              <ShieldIcon className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-[15px] tracking-tight">
-              Patolino<span className="text-[#ef4444]">.Security</span>
-            </span>
-          </div>
-          <button
-            onClick={() => { setCurrentStep(1); setShowQuiz(true); }}
-            className="text-xs font-semibold tracking-wider uppercase px-5 py-2 rounded-lg bg-[#dc2626] text-white hover:bg-[#ef4444] transition-all"
+      <nav className="fixed top-0 w-full z-[100] glass-heavy">
+        <div className="max-w-[1280px] mx-auto px-6 h-16 flex items-center justify-between">
+          <motion.div 
+            whileHover={{ scale: 1.02 }}
+            className="flex items-center gap-3 group cursor-pointer"
           >
-            Agendar Diagnóstico
-          </button>
+            <motion.div 
+              whileHover={{ rotate: 10 }}
+              className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center shadow-lg shadow-primary/30"
+            >
+              <Shield className="w-5 h-5 text-white" />
+            </motion.div>
+            <span className="font-black text-lg tracking-tighter text-white">
+              PATOLINO<span className="text-primary">.SEC</span>
+            </span>
+          </motion.div>
+          
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => { setCurrentStep(1); setShowQuiz(true); }}
+            className="btn btn-primary px-6 py-2.5 rounded-xl text-xs"
+          >
+            Iniciar Auditoria
+          </motion.button>
         </div>
       </nav>
 
       {/* HERO */}
-      <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
-        <div className="relative z-10 max-w-[760px] mx-auto px-6 py-20 text-center">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[rgba(220,38,38,0.12)] border border-[rgba(220,38,38,0.3)] mb-8">
-            <span className="w-1.5 h-1.5 bg-[#f59e0b] rounded-full animate-pulse" />
-            <span className="text-[#f59e0b] text-xs font-medium tracking-wide">
-              Diagnóstico gratuito — restam 3 vagas em maio
+      <Section className="min-h-screen flex items-center pt-20" withGlow>
+        <FloatingParticles />
+        
+        <motion.div 
+          style={{ y: smoothHeroY, opacity: heroOpacity, scale: heroScale }}
+          className="text-center max-w-[900px] mx-auto"
+        >
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full glass mb-8"
+          >
+            <StatusDot color="warning" />
+            <span className="text-accent text-xs font-bold uppercase tracking-wider">
+              Vagas limitadas para {new Date().toLocaleDateString('pt-BR', { month: 'long' })}
             </span>
-          </div>
+          </motion.div>
 
-          <h1 className="text-5xl md:text-6xl font-extrabold leading-tight tracking-tight mb-6">
-            Alguém já está tentando<br />
-            <span className="bg-gradient-to-br from-[#ef4444] via-[#fb923c] to-[#ef4444] bg-clip-text text-transparent">
-              invadir sua empresa.
+          <motion.h1 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-5xl sm:text-6xl md:text-8xl font-black leading-[0.9] tracking-tighter mb-8"
+          >
+            <span className="text-white">AUDITORIA DE</span>
+            <br />
+            <span className="text-gradient-fire text-glow-primary inline-block">
+              SEGURANÇA
             </span>
-          </h1>
+          </motion.h1>
 
-          <p className="text-lg text-[#a1a1aa] leading-relaxed max-w-[580px] mx-auto mb-10">
-            Descubra as portas abertas no seu negócio antes que alguém mal-intencionado as encontre. Um vazamento de dados custa em média <strong className="text-white">R$ 21,5 milhões</strong> — e pode fechar sua empresa.
-          </p>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-lg md:text-xl text-zinc-400 leading-relaxed max-w-[640px] mx-auto mb-12"
+          >
+            Descubra as brechas críticas no seu negócio antes que agentes mal-intencionados 
+            as explorem. <span className="text-white font-medium">Mapeamento técnico e intrusão controlada.</span>
+          </motion.p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-6"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(220, 38, 38, 0.4)" }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => { setCurrentStep(1); setShowQuiz(true); }}
-              className="inline-flex items-center gap-2 text-base font-bold px-8 py-4 rounded-xl bg-[#dc2626] text-white hover:bg-[#ef4444] hover:shadow-[0_0_40px_rgba(220,38,38,0.25)] transition-all animate-pulse"
+              className="btn btn-primary px-10 py-5 rounded-2xl text-sm shimmer"
             >
-              Quero Saber Se Estou Seguro →
-            </button>
-            <a href="#como-funciona" className="text-sm font-medium text-[#71717a] hover:text-[#a1a1aa] transition-colors px-6 py-4">
-              Como funciona ↓
+              SOLICITAR SCAN GRATUITO <ArrowRight className="w-4 h-4" />
+            </motion.button>
+            
+            <a href="#how" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-200 transition-colors p-4">
+              Metodologia <ChevronDown className="w-4 h-4" />
             </a>
-          </div>
-
-          <p className="mt-8 text-[11px] text-[#52525b] tracking-wide">
-            Sem compromisso • Resultado em até 10 dias úteis • 100% confidencial • <span className="text-[#f59e0b]">Apenas 3 vagas restantes</span>
-          </p>
-        </div>
-      </section>
+          </motion.div>
+        </motion.div>
+      </Section>
 
       {/* STATS */}
-      <section className="border-t border-b border-[#1f1f27] bg-[#111113]">
-        <div className="max-w-[1180px] mx-auto px-6 py-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold bg-gradient-to-br from-[#ef4444] to-[#fb923c] bg-clip-text text-transparent">R$ 21,5M</div>
-              <div className="text-[13px] text-[#71717a] mt-1 leading-snug">Custo médio de um vazamento de dados</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold bg-gradient-to-br from-[#ef4444] to-[#fb923c] bg-clip-text text-transparent">197 dias</div>
-              <div className="text-[13px] text-[#71717a] mt-1 leading-snug">Até uma invasão ser percebida</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold bg-gradient-to-br from-[#ef4444] to-[#fb923c] bg-clip-text text-transparent">60%</div>
-              <div className="text-[13px] text-[#71717a] mt-1 leading-snug">Das empresas fecham após um ataque</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold bg-gradient-to-br from-[#ef4444] to-[#fb923c] bg-clip-text text-transparent">91%</div>
-              <div className="text-[13px] text-[#71717a] mt-1 leading-snug">Dos ataques começam por e-mail (phishing)</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* RISCO REAL */}
-      <section className="py-24">
-        <div className="max-w-[1180px] mx-auto px-6">
-          <div className="max-w-[640px] mx-auto text-center mb-16">
-            <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[#ef4444] mb-4">O Risco é Real</p>
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight mb-4">
-              O que acontece quando você
-              <span className="bg-gradient-to-br from-[#ef4444] via-[#fb923c] to-[#ef4444] bg-clip-text text-transparent"> não se protege</span>
-            </h2>
-            <p className="text-base text-[#a1a1aa] leading-relaxed">
-              Achar que "não vai acontecer comigo" é o que toda empresa achava antes de ser atacada. O custo de reagir é sempre maior que o de prevenir.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-4">
-            {/* Card 1 */}
-            <div className="group bg-[#111113] border border-[#2a2a32] rounded-2xl p-8 hover:border-[rgba(220,38,38,0.3)] hover:shadow-[0_0_20px_rgba(220,38,38,0.12)] transition-all">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-5 bg-[rgba(220,38,38,0.1)]">
-                <AlertCircleIcon className="text-[#ef4444]" />
-              </div>
-              <h3 className="text-[17px] font-bold tracking-tight mb-3">Multa LGPD de até 2% do faturamento</h3>
-              <p className="text-sm text-[#a1a1aa] leading-relaxed">Se os dados dos seus clientes vazarem, a Lei Geral de Proteção de Dados pode multar sua empresa em até R$ 50 milhões por infração.</p>
-            </div>
-
-            {/* Card 2 */}
-            <div className="group bg-[#111113] border border-[#2a2a32] rounded-2xl p-8 hover:border-[rgba(220,38,38,0.3)] hover:shadow-[0_0_20px_rgba(220,38,38,0.12)] transition-all">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-5 bg-[rgba(217,119,6,0.1)]">
-                <CartIcon className="text-[#f59e0b]" />
-              </div>
-              <h3 className="text-[17px] font-bold tracking-tight mb-3">Você pode ser processado pessoalmente</h3>
-              <p className="text-sm text-[#a1a1aa] leading-relaxed">Em mais de 100 países, donos e diretores de empresa respondem com o próprio patrimônio por falhas de segurança.</p>
-            </div>
-
-            {/* Card 3 */}
-            <div className="group bg-[#111113] border border-[#2a2a32] rounded-2xl p-8 hover:border-[rgba(220,38,38,0.3)] hover:shadow-[0_0_20px_rgba(220,38,38,0.12)] transition-all">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-5 bg-[rgba(239,68,68,0.1)]">
-                <span className="text-[#ef4444] text-xl">💀</span>
-              </div>
-              <h3 className="text-[17px] font-bold tracking-tight mb-3">60% das empresas fecham em 6 meses</h3>
-              <p className="text-sm text-[#a1a1aa] leading-relaxed">Após um ataque sério, a maioria não consegue se recuperar — perde clientes, reputação e faturamento.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* COMO FUNCIONA */}
-      <section id="como-funciona" className="py-24 bg-[#111113]">
-        <div className="max-w-[1180px] mx-auto px-6">
-          <div className="max-w-[640px] mx-auto text-center mb-16">
-            <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[#ef4444] mb-4">Processo Simples</p>
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight mb-4">
-              Como funciona o
-              <span className="bg-gradient-to-br from-[#ef4444] via-[#fb923c] to-[#ef4444] bg-clip-text text-transparent"> diagnóstico</span>
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
+      <div className="border-y border-white/5 glass-heavy relative z-10">
+        <div className="max-w-[1280px] mx-auto px-6 py-20">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
             {[
-              { step: '01', title: 'Você responde o questionário', desc: '5 perguntas rápidas sobre sua empresa e preocupações de segurança.' },
-              { step: '02', title: 'Nós analisamos seu site', desc: 'Rodamos ferramentas profissionais de segurança para identificar falhas reais.' },
-              { step: '03', title: 'Você recebe o diagnóstico', desc: 'Relatório claro com prioridades + call gratuita para discutir próximos passos.' }
-            ].map((item) => (
-              <div key={item.step} className="bg-[#09090b] rounded-2xl p-8 border border-[#2a2a32]">
-                <div className="text-3xl font-bold text-[#2a2a32] mb-4 font-mono">{item.step}</div>
-                <h3 className="text-lg font-bold mb-2">{item.title}</h3>
-                <p className="text-sm text-[#a1a1aa]">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* OFERTA */}
-      <section className="py-24">
-        <div className="max-w-[1180px] mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* O que você ganha */}
-            <div className="space-y-6">
-              <div>
-                <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[#4ade80] mb-4">O que você ganha</p>
-                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight">
-                  Diagnóstico completo<br />
-                  <span className="bg-gradient-to-br from-[#4ade80] to-[#22c55e] bg-clip-text text-transparent">sem pagar nada</span>
-                </h2>
-              </div>
-
-              <div className="space-y-4">
-                {[
-                  'Mapeamento completo das falhas mais perigosas do seu site',
-                  'Relatório com prioridades claras em linguagem que você entende',
-                  'Análise de pontos de entrada que um atacante usaria',
-                  'Recomendações práticas que você pode aplicar hoje',
-                  'Call gratuita de 15 minutos para discutir os resultados'
-                ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <CheckIcon className="w-4 h-4 mt-1 text-[#4ade80] flex-shrink-0" />
-                    <span className="text-sm text-[#d1d5db]">{item}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-4 rounded-xl bg-[rgba(34,197,94,0.06)] border border-[rgba(34,197,94,0.15)]">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckIcon className="w-4 h-4 text-[#4ade80]" />
-                  <span className="text-[13px] font-bold text-[#4ade80]">Seu diagnóstico: R$ 0</span>
-                </div>
-                <p className="text-[12px] text-[#86efac] leading-relaxed">
-                  Isso mesmo — você recebe o diagnóstico completo sem pagar nada. Depois, você decide se quer investir na correção. Sem pegadinha.
-                </p>
-              </div>
-            </div>
-
-            {/* Card de oferta */}
-            <div className="bg-[#09090b] rounded-2xl p-8 border border-[#2a2a32] relative">
-              <div className="absolute -top-3 right-6 bg-[#dc2626] text-white text-[10px] font-bold tracking-wider uppercase px-4 py-1 rounded-full animate-pulse">
-                GRATUITO
-              </div>
-              
-              <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[#f59e0b] mb-3">Oferta por tempo limitado</p>
-              <h3 className="text-2xl font-extrabold tracking-tight mb-2">Diagnóstico de segurança</h3>
-              
-              <div className="flex items-baseline gap-3 mb-4">
-                <span className="text-[13px] text-[#52525b] line-through">R$ 8.000</span>
-                <span className="text-4xl font-extrabold text-[#4ade80]">R$ 0</span>
-              </div>
-
-              <p className="text-sm text-[#a1a1aa] leading-relaxed mb-6">
-                Nós avaliamos seu site, identificamos as falhas mais críticas e te entregamos um relatório com prioridades — sem custo.
-              </p>
-
-              <div className="p-4 rounded-xl bg-[rgba(217,119,6,0.08)] border border-[rgba(217,119,6,0.2)] mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <ClockIcon className="w-4 h-4 text-[#f59e0b]" />
-                  <span className="text-[13px] font-bold text-[#fbbf24]">Vagas encerram em breve</span>
-                </div>
-                <p className="text-[13px] text-[#fcd34d] leading-relaxed">
-                  Apenas 5 empresas por mês recebem o diagnóstico gratuito.
-                </p>
-              </div>
-
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] text-[#71717a]">2 de 5 vagas preenchidas</span>
-                  <span className="text-[11px] font-bold text-[#f59e0b]">3 restantes</span>
-                </div>
-                <div className="h-2 bg-[#1f1f27] rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-[#f59e0b] to-[#ef4444] rounded-full" style={{ width: '40%' }} />
-                </div>
-              </div>
-
-              <button
-                onClick={() => { setCurrentStep(1); setShowQuiz(true); }}
-                className="block w-full py-3.5 rounded-xl text-base font-bold text-white bg-[#dc2626] hover:bg-[#ef4444] hover:shadow-[0_0_40px_rgba(220,38,38,0.25)] transition-all text-center"
+              { label: "Custo Médio de Vazamento", value: "R$ 21.5M", icon: <BarChart3 /> },
+              { label: "Dias até Detecção", value: "197", icon: <Eye /> },
+              { label: "Empresas que Fecham", value: "60%", icon: <AlertCircle /> },
+              { label: "Ataques via Phishing", value: "91%", icon: <Bug /> }
+            ].map((stat, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="text-center group"
               >
-                Garantir Minha Vaga Gratuita →
-              </button>
-              
-              <p className="text-center text-[11px] text-[#52525b] mt-2">
-                Depois que as 5 vagas acabam, essa oferta some.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section className="py-24 bg-[#111113]">
-        <div className="max-w-[720px] mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[#ef4444] mb-4">Dúvidas</p>
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight">
-              Perguntas
-              <span className="bg-gradient-to-br from-[#ef4444] via-[#fb923c] to-[#ef4444] bg-clip-text text-transparent"> frequentes</span>
-            </h2>
-          </div>
-
-          <div className="space-y-3">
-            {[
-              { q: 'O diagnóstico é realmente gratuito?', a: 'Sim. Você não paga nada pelo diagnóstico. Se quiser contratar nossos serviços para corrigir as falhas, aí sim conversamos sobre valores — mas o diagnóstico em si é 100% gratuito.' },
-              { q: 'Vocês vão invadir meu site?', a: 'Não. Fazemos testes controlados que não afetam a operação do seu site. Identificamos vulnerabilidades sem explorá-las de forma destrutiva.' },
-              { q: 'Quanto tempo demora?', a: 'O diagnóstico leva de 5 a 10 dias úteis. Você recebe um relatório completo com todas as falhas encontradas e recomendações.' },
-              { q: 'Meus dados estão seguros?', a: 'Sim. Tudo o que compartilhar conosco é 100% confidencial. Não vendemos, compartilhamos ou divulgamos suas informações.' },
-              { q: 'Por que apenas 5 vagas por mês?', a: 'Porque cada diagnóstico leva tempo e atenção dedicada. Queremos entregar qualidade, não volume. Quando as vagas acabam, só no mês seguinte.' }
-            ].map((faq, i) => (
-              <div key={i} className="bg-[#09090b] border border-[#2a2a32] rounded-xl overflow-hidden">
-                <button
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between p-5 text-left"
-                >
-                  <span className="font-semibold text-[15px]">{faq.q}</span>
-                  <span className="text-[#71717a] text-xl">{openFaq === i ? '−' : '+'}</span>
-                </button>
-                {openFaq === i && (
-                  <div className="px-5 pb-5 text-sm text-[#a1a1aa] leading-relaxed border-t border-[#2a2a32] pt-4">
-                    {faq.a}
-                  </div>
-                )}
-              </div>
+                <div className="w-12 h-12 rounded-2xl glass-card mx-auto mb-4 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                  {stat.icon}
+                </div>
+                <div className="text-3xl md:text-5xl font-black mb-2 tracking-tighter text-gradient-primary">
+                  {stat.value}
+                </div>
+                <div className="text-xs font-bold uppercase tracking-widest text-zinc-500 leading-tight">
+                  {stat.label}
+                </div>
+              </motion.div>
             ))}
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* CTA FINAL */}
-      <section className="py-24">
-        <div className="max-w-[640px] mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight mb-6">
-            Ainda tem dúvida se precisa de segurança?
+      {/* RISK CARDS */}
+      <Section id="risk" withGlow>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
+        >
+          <span className="text-xs font-black text-primary uppercase tracking-[0.3em] mb-4 block">
+            Riscos Reais
+          </span>
+          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter">
+            O QUE ESTÁ EM JOGO
           </h2>
-          <p className="text-lg text-[#a1a1aa] mb-8">
-            A resposta é: sim, precisa. Toda empresa que lida com dados de clientes precisa de segurança. A única pergunta real é: você vai descobrir as falhas antes ou depois de um ataque?
-          </p>
-          <button
-            onClick={() => { setCurrentStep(1); setShowQuiz(true); }}
-            className="inline-flex items-center gap-2 text-base font-bold px-8 py-4 rounded-xl bg-[#dc2626] text-white hover:bg-[#ef4444] hover:shadow-[0_0_40px_rgba(220,38,38,0.25)] transition-all"
-          >
-            Descobrir Minhas Falhas Agora →
-          </button>
+        </motion.div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {[
+            { 
+              title: "Multas LGPD", 
+              desc: "Até 2% do faturamento ou R$ 50 milhões por cada infração detectada.",
+              icon: <AlertCircle className="text-primary" />,
+              gradient: "from-primary-600/20 to-transparent"
+            },
+            { 
+              title: "Responsabilidade Civil", 
+              desc: "Diretores respondem com patrimônio pessoal por falhas de segurança negligenciadas.",
+              icon: <Lock className="text-accent" />,
+              gradient: "from-accent/20 to-transparent"
+            },
+            { 
+              title: "Dano Reputacional", 
+              desc: "60% das empresas encerram atividades em até 6 meses após um ataque crítico.",
+              icon: <BarChart3 className="text-primary" />,
+              gradient: "from-primary-600/20 to-transparent"
+            }
+          ].map((card, i) => (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.15 }}
+              whileHover={{ y: -8 }}
+              className="glass-card glass-card-hover p-8 rounded-3xl relative overflow-hidden group"
+            >
+              <div className={cn(
+                "absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity",
+                card.gradient
+              )} />
+              
+              <div className="relative z-10">
+                <div className="w-14 h-14 rounded-2xl glass-card mb-6 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  {card.icon}
+                </div>
+                <h3 className="text-xl font-bold text-white mb-4 tracking-tight">{card.title}</h3>
+                <p className="text-zinc-400 text-sm leading-relaxed">{card.desc}</p>
+              </div>
+            </motion.div>
+          ))}
         </div>
-      </section>
+      </Section>
+
+      {/* METHODOLOGY */}
+      <Section id="how" className="bg-surface-2/30">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="max-w-[640px] mb-20"
+        >
+          <span className="text-xs font-black text-primary uppercase tracking-[0.3em] mb-4 block">
+            Fluxo Operacional
+          </span>
+          <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter">
+            METODOLOGIA DE AUDITORIA
+          </h2>
+        </motion.div>
+
+        <div className="grid md:grid-cols-3 gap-12">
+          {[
+            { 
+              step: "01", 
+              title: "Questionário de Vetores", 
+              desc: "Análise inicial dos ativos expostos e vetores de ataque potenciais.",
+              icon: <Terminal />
+            },
+            { 
+              step: "02", 
+              title: "Varredura de Agentes", 
+              desc: "Nossos agentes de IA executam testes de intrusão e mapeamento de portas.",
+              icon: <Cpu />
+            },
+            { 
+              step: "03", 
+              title: "Entrega Técnica", 
+              desc: "Call de 15 min para entrega do relatório consolidado e plano de mitigação.",
+              icon: <Activity />
+            }
+          ].map((item, i) => (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.15 }}
+              className="relative group"
+            >
+              <div className="absolute -top-8 -left-4 text-7xl font-black text-white/[0.03] pointer-events-none group-hover:text-white/[0.06] transition-colors">
+                {item.step}
+              </div>
+              
+              <div className="relative z-10 pl-4 border-l-2 border-white/5 group-hover:border-primary/30 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-surface-3 flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
+                  {item.icon}
+                </div>
+                <h3 className="text-lg font-bold text-white mb-4">{item.title}</h3>
+                <p className="text-zinc-500 text-sm leading-relaxed">{item.desc}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </Section>
+
+      {/* FINAL CTA */}
+      <Section className="text-center" withGlow>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          className="max-w-2xl mx-auto"
+        >
+          <div className="border-animated p-12 md:p-16">
+            <motion.div
+              animate={{ rotate: [0, 5, -5, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-primary/30"
+            >
+              <Shield className="w-10 h-10 text-white" />
+            </motion.div>
+            
+            <h2 className="text-3xl md:text-5xl font-black text-white mb-6 tracking-tight">
+              VULNERABILIDADES<br />NÃO ESPERAM.
+            </h2>
+            
+            <p className="text-zinc-400 mb-10 max-w-md mx-auto">
+              Cada dia sem proteção é uma oportunidade para atacantes. 
+              Identifique as brechas antes que seja tarde demais.
+            </p>
+            
+            <motion.button
+              whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(220, 38, 38, 0.4)" }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => { setCurrentStep(1); setShowQuiz(true); }}
+              className="btn btn-primary px-12 py-5 rounded-2xl text-sm shimmer"
+            >
+              BLOQUEAR ATAQUES AGORA <Shield className="w-4 h-4" />
+            </motion.button>
+          </div>
+        </motion.div>
+      </Section>
 
       {/* FOOTER */}
-      <footer className="border-t border-[#1f1f27] py-10">
-        <div className="max-w-[1180px] mx-auto px-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-[3px] bg-[#dc2626] flex items-center justify-center">
-              <ShieldIcon className="w-3 h-3 text-white" />
-            </div>
-            <span className="text-[13px] font-semibold">
-              Patolino<span className="text-[#ef4444]">.Security</span>
-            </span>
+      <footer className="border-t border-white/5 py-12 bg-surface-2/50">
+        <div className="max-w-[1280px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex items-center gap-3">
+            <Shield className="w-5 h-5 text-primary" />
+            <span className="font-black text-sm tracking-tighter text-white">PATOLINO.SEC</span>
           </div>
-          <p className="text-xs text-[#52525b]">Segurança que funciona. Sem desculpas.</p>
-          <p className="text-xs text-[#3f3f46]">© 2025 Patolino.Security</p>
+          
+          <p className="text-xs font-bold text-zinc-600 uppercase tracking-widest text-center">
+            © 2025 Segurança Cibernética Avançada
+          </p>
+          
+          <div className="flex items-center gap-6">
+            {[Monitor, Lock, Zap].map((Icon, i) => (
+              <Icon key={i} className="w-4 h-4 text-zinc-700 hover:text-zinc-400 transition-colors cursor-pointer" />
+            ))}
+          </div>
         </div>
       </footer>
     </div>
