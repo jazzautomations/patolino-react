@@ -167,7 +167,7 @@ export default function App() {
     setTimeout(() => {
       const questionIndex = QUESTIONS.findIndex(q => q.id === questionId)
       if (questionIndex < QUESTIONS.length - 1) {
-        setCurrentStep(questionIndex + 2)
+        setCurrentStep(questionIndex + 2) // +2 because step is 1-indexed
       } else {
         setCurrentStep(QUESTIONS.length + 1) // Go to form
       }
@@ -416,7 +416,7 @@ export default function App() {
             </span>
           </div>
           <button
-            onClick={() => setShowQuiz(true)}
+            onClick={() => { setCurrentStep(1); setShowQuiz(true); }}
             className="text-xs font-semibold tracking-wider uppercase px-5 py-2 rounded-lg bg-[#dc2626] text-white hover:bg-[#ef4444] transition-all"
           >
             Agendar Diagnóstico
@@ -447,7 +447,7 @@ export default function App() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
-              onClick={() => setShowQuiz(true)}
+              onClick={() => { setCurrentStep(1); setShowQuiz(true); }}
               className="inline-flex items-center gap-2 text-base font-bold px-8 py-4 rounded-xl bg-[#dc2626] text-white hover:bg-[#ef4444] hover:shadow-[0_0_40px_rgba(220,38,38,0.25)] transition-all animate-pulse"
             >
               Quero Saber Se Estou Seguro →
@@ -638,7 +638,7 @@ export default function App() {
               </div>
 
               <button
-                onClick={() => setShowQuiz(true)}
+                onClick={() => { setCurrentStep(1); setShowQuiz(true); }}
                 className="block w-full py-3.5 rounded-xl text-base font-bold text-white bg-[#dc2626] hover:bg-[#ef4444] hover:shadow-[0_0_40px_rgba(220,38,38,0.25)] transition-all text-center"
               >
                 Garantir Minha Vaga Gratuita →
@@ -700,7 +700,7 @@ export default function App() {
             A resposta é: sim, precisa. Toda empresa que lida com dados de clientes precisa de segurança. A única pergunta real é: você vai descobrir as falhas antes ou depois de um ataque?
           </p>
           <button
-            onClick={() => setShowQuiz(true)}
+            onClick={() => { setCurrentStep(1); setShowQuiz(true); }}
             className="inline-flex items-center gap-2 text-base font-bold px-8 py-4 rounded-xl bg-[#dc2626] text-white hover:bg-[#ef4444] hover:shadow-[0_0_40px_rgba(220,38,38,0.25)] transition-all"
           >
             Descobrir Minhas Falhas Agora →
