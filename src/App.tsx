@@ -192,6 +192,14 @@ export default function App() {
         })
       })
 
+      // Check if response is ok before parsing
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('HTTP Error:', response.status, errorText)
+        alert(`Erro HTTP ${response.status}: ${errorText}`)
+        return
+      }
+
       const result = await response.json()
       
       if (result.success) {
@@ -201,8 +209,13 @@ export default function App() {
         alert('Erro: ' + (result.error || 'Erro ao salvar'))
       }
     } catch (error) {
-      console.error('Error:', error)
-      alert('Erro ao enviar. Tente novamente.')
+      console.error('Network/Parse Error:', error)
+      // Check if it's a CORS or network error
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        alert('Erro de conexão. Verifique sua internet ou tente novamente.')
+      } else {
+        alert('Erro ao enviar: ' + (error instanceof Error ? error.message : 'Erro desconhecido'))
+      }
     } finally {
       setIsSubmitting(false)
     }
