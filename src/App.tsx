@@ -1,657 +1,728 @@
 import { useState } from 'react'
-import { Shield, AlertTriangle, CheckCircle, ChevronRight, Clock, Lock, Server, Globe, Users, Zap, ArrowRight, Phone, Mail, Building, ExternalLink, X, Menu, Rocket, Target, Eye, Bug, Database, Wifi, ShieldCheck } from 'lucide-react'
 
+// ═══ TYPES ═══
 type FormData = {
-  name: string;
-  company: string;
-  email: string;
-  phone: string;
-  site_url: string;
-  authorize_test: boolean;
-};
+  name: string
+  company: string
+  email: string
+  phone: string
+  site_url: string
+  authorize_test: boolean
+}
 
-type QuizAnswer = {
-  has_sla: boolean | null;
-  has_server_access: boolean | null;
-  uses_cloudflare: boolean | null;
-  had_incidents: boolean | null;
-  has_crm_data: boolean | null;
-  has_wifi_open: boolean | null;
-};
+type Answers = {
+  q1?: string
+  q2?: string
+  q3?: string
+  q4?: string
+  q5?: string
+}
 
-const QUIZ_QUESTIONS = [
-  {
-    id: 'has_sla',
-    question: 'Sua empresa tem SLA (Acordo de Nível de Serviço) definido com clientes?',
-    description: 'SLA define prazos e responsabilidades claras em caso de problemas.',
-    icon: Clock,
-  },
-  {
-    id: 'has_server_access',
-    question: 'Você tem controle total sobre seus servidores e hospedagem?',
-    description: 'Acesso root permite configurações de segurança avançadas.',
-    icon: Server,
-  },
-  {
-    id: 'uses_cloudflare',
-    question: 'Seu site usa Cloudflare ou outro serviço de proteção CDN/WAF?',
-    description: 'CDNs com WAF bloqueiam ataques antes de chegarem ao servidor.',
-    icon: Globe,
-  },
-  {
-    id: 'had_incidents',
-    question: 'Sua empresa já teve algum incidente de segurança nos últimos 12 meses?',
-    description: 'Incidentes anteriores indicam vulnerabilidades que podem persistir.',
-    icon: AlertTriangle,
-  },
-  {
-    id: 'has_crm_data',
-    question: 'Você armazena dados de clientes em CRM ou banco de dados próprio?',
-    description: 'Dados de clientes são alvos valiosos para atacantes.',
-    icon: Database,
-  },
-  {
-    id: 'has_wifi_open',
-    question: 'Sua rede Wi-Fi empresarial está aberta ou tem senha fraca?',
-    description: 'Redes abertas permitem acesso de intrusos à rede interna.',
-    icon: Wifi,
-  },
-];
+// ═══ CONSTANTS ═══
+const SCORE_WEIGHTS: Record<string, Record<string, number>> = {
+  q1: { '1-10': 30, '11-50': 50, '51-200': 70, '200+': 90 },
+  q2: { 'sim': 100, 'nao-sei': 70, 'nao': 30 },
+  q3: { 'nenhuma': 100, 'basico': 70, 'interno': 50, 'consultoria': 20 },
+  q4: { 'ransomware': 80, 'vazamento': 70, 'phishing': 60, 'acesso': 75 },
+  q5: { 'sim': 50, 'aprovar': 60 }
+}
 
-function App() {
-  const [quizStep, setQuizStep] = useState(0);
-  const [quizAnswers, setQuizAnswers] = useState<QuizAnswer>({
-    has_sla: null,
-    has_server_access: null,
-    has_crm_data: null,
-    had_incidents: null,
-    has_wifi_open: null,
-    uses_cloudflare: null,
-  });
-  const [showForm, setShowForm] = useState(false);
+const QUESTIONS = [
+  {
+    id: 'q1',
+    question: 'Quantos funcionários sua empresa tem?',
+    options: [
+      { value: '1-10', label: '1-10 funcionários' },
+      { value: '11-50', label: '11-50 funcionários' },
+      { value: '51-200', label: '51-200 funcionários' },
+      { value: '200+', label: 'Mais de 200 funcionários' }
+    ]
+  },
+  {
+    id: 'q2',
+    question: 'Você sabe se sua empresa já foi atacada por hackers?',
+    options: [
+      { value: 'sim', label: 'Sim, já fomos atacados' },
+      { value: 'nao-sei', label: 'Não sei, pode ter sido e não descobrimos' },
+      { value: 'nao', label: 'Não, nunca fomos atacados' }
+    ]
+  },
+  {
+    id: 'q3',
+    question: 'Sua empresa tem algum tipo de proteção de segurança?',
+    options: [
+      { value: 'nenhuma', label: 'Nenhuma proteção específica' },
+      { value: 'basico', label: 'Antivírus básico' },
+      { value: 'interno', label: 'Equipe interna de TI' },
+      { value: 'consultoria', label: 'Consultoria de segurança' }
+    ]
+  },
+  {
+    id: 'q4',
+    question: 'O que mais te preocupa em relação à segurança?',
+    options: [
+      { value: 'ransomware', label: 'Ransomware (sequestro de dados)' },
+      { value: 'vazamento', label: 'Vazamento de dados de clientes' },
+      { value: 'phishing', label: 'Phishing (e-mails falsos)' },
+      { value: 'acesso', label: 'Acesso não autorizado' }
+    ]
+  },
+  {
+    id: 'q5',
+    question: 'Você tem autoridade para decidir sobre segurança na empresa?',
+    options: [
+      { value: 'sim', label: 'Sim, eu decido' },
+      { value: 'aprovar', label: 'Preciso aprovar com outros' }
+    ]
+  }
+]
+
+// ═══ COMPONENTS ═══
+function ShieldIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+  )
+}
+
+function CheckIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  )
+}
+
+function AlertCircleIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+    </svg>
+  )
+}
+
+function CartIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M3 6l3 1 .75 9.34a2 2 0 002 1.66h8.5a2 2 0 002-1.66L20 7H6.25M10 21a1 1 0 11-2 0 1 1 0 012 0zm8 0a1 1 0 11-2 0 1 1 0 012 0z"/>
+    </svg>
+  )
+}
+
+function ClockIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+      <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+    </svg>
+  )
+}
+
+function WhatsAppIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.876 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.377l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.511-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.884 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.411z"/>
+    </svg>
+  )
+}
+
+// ═══ MAIN APP ═══
+export default function App() {
+  const [currentStep, setCurrentStep] = useState(0)
+  const [answers, setAnswers] = useState<Answers>({})
   const [formData, setFormData] = useState<FormData>({
     name: '',
     company: '',
     email: '',
     phone: '',
     site_url: '',
-    authorize_test: false,
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [score, setScore] = useState(0);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    authorize_test: false
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [score, setScore] = useState(0)
+  const [showQuiz, setShowQuiz] = useState(false)
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
 
-  const calculateScore = () => {
-    let points = 0;
-    // Pontos positivos
-    if (quizAnswers.has_sla === true) points += 5;
-    if (quizAnswers.has_server_access === true) points += 5;
-    if (quizAnswers.uses_cloudflare === true) points += 5;
-    // Pontos negativos
-    if (quizAnswers.had_incidents === true) points += 5;
-    if (quizAnswers.has_crm_data === true) points += 3;
-    if (quizAnswers.has_wifi_open === true) points += 5;
-    return points;
-  };
+  const totalSteps = QUESTIONS.length + 2 // questions + form + result
 
-  const handleAnswer = (answer: boolean) => {
-    const currentQuestion = QUIZ_QUESTIONS[quizStep];
-    setQuizAnswers(prev => ({
-      ...prev,
-      [currentQuestion.id]: answer
-    }));
-
-    if (quizStep < QUIZ_QUESTIONS.length - 1) {
-      setQuizStep(prev => prev + 1);
-    } else {
-      const finalScore = calculateScore();
-      setScore(finalScore);
-      setShowForm(true);
+  const calculateScore = (): number => {
+    let total = 0
+    for (const key in answers) {
+      if (SCORE_WEIGHTS[key] && SCORE_WEIGHTS[key][answers[key as keyof Answers] || '']) {
+        total += SCORE_WEIGHTS[key][answers[key as keyof Answers] || '']
+      }
     }
-  };
+    return Math.min(100, Math.max(0, Math.round(total / 5)))
+  }
+
+  const getRiskLevel = (score: number) => {
+    if (score >= 80) return { text: 'Alto', color: '#ef4444', bg: 'linear-gradient(to right, #ef4444, #dc2626)' }
+    if (score >= 50) return { text: 'Médio', color: '#f59e0b', bg: 'linear-gradient(to right, #f59e0b, #d97706)' }
+    return { text: 'Baixo', color: '#4ade80', bg: 'linear-gradient(to right, #4ade80, #22c55e)' }
+  }
+
+  const handleAnswer = (questionId: string, value: string) => {
+    setAnswers(prev => ({ ...prev, [questionId]: value }))
+    // Auto advance after selection
+    setTimeout(() => {
+      const questionIndex = QUESTIONS.findIndex(q => q.id === questionId)
+      if (questionIndex < QUESTIONS.length - 1) {
+        setCurrentStep(questionIndex + 2)
+      } else {
+        setCurrentStep(QUESTIONS.length + 1) // Go to form
+      }
+    }, 300)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+    e.preventDefault()
+    setIsSubmitting(true)
 
+    const finalScore = calculateScore()
+    
     try {
       const response = await fetch('https://felipes.zo.space/api/patolino-lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          quiz_score: score,
-        }),
-      });
+          quiz_answers: answers,
+          quiz_score: finalScore,
+          authorize_test: formData.authorize_test
+        })
+      })
 
-      if (response.ok) {
-        setSubmitted(true);
+      const result = await response.json()
+      
+      if (result.success) {
+        setScore(finalScore)
+        setCurrentStep(totalSteps) // Show result
+      } else {
+        alert('Erro: ' + (result.error || 'Erro ao salvar'))
       }
     } catch (error) {
-      console.error('Erro ao enviar:', error);
+      console.error('Error:', error)
+      alert('Erro ao enviar. Tente novamente.')
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
 
-  const getRiskLevel = (score: number) => {
-    if (score >= 20) return { level: 'Alto', color: 'text-red-500', bg: 'bg-red-500/20', icon: AlertTriangle };
-    if (score >= 10) return { level: 'Médio', color: 'text-yellow-500', bg: 'bg-yellow-500/20', icon: Shield };
-    return { level: 'Baixo', color: 'text-green-500', bg: 'bg-green-500/20', icon: CheckCircle };
-  };
+  const progress = Math.round((currentStep / (totalSteps - 1)) * 100)
+  const risk = getRiskLevel(score)
 
-  const getWhatsAppLink = () => {
-    const risk = getRiskLevel(score);
-    const message = encodeURIComponent(
-      `Olá! Acabei de fazer o diagnóstico do Patolino.Security e meu nível de risco é *${risk.level}*.\n\nGostaria de saber mais sobre como proteger meu negócio.`
-    );
-    return `https://wa.me/5511910376040?text=${message}`;
-  };
-
-  const resetQuiz = () => {
-    setQuizStep(0);
-    setQuizAnswers({
-      has_sla: null,
-      has_server_access: null,
-      has_crm_data: null,
-      had_incidents: null,
-      has_wifi_open: null,
-      uses_cloudflare: null,
-    });
-    setShowForm(false);
-    setSubmitted(false);
-    setFormData({
-      name: '',
-      company: '',
-      email: '',
-      phone: '',
-      site_url: '',
-      authorize_test: false,
-    });
-  };
-
-  return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-zinc-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <Shield className="w-8 h-8 text-amber-500" />
-              <span className="text-xl font-bold">Patolino<span className="text-amber-500">.Security</span></span>
-            </div>
-            <div className="hidden md:flex items-center gap-8">
-              <a href="#quiz" className="text-zinc-400 hover:text-amber-500 transition">Diagnóstico</a>
-              <a href="#features" className="text-zinc-400 hover:text-amber-500 transition">Recursos</a>
-              <a href="#how-it-works" className="text-zinc-400 hover:text-amber-500 transition">Como Funciona</a>
-              <a 
-                href="#quiz" 
-                className="bg-amber-500 hover:bg-amber-600 text-black font-semibold px-4 py-2 rounded-lg transition"
-              >
-                Fazer Diagnóstico
-              </a>
-            </div>
-            <button 
-              className="md:hidden text-zinc-400"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+  // ═══ RENDER ═══
+  if (currentStep === totalSteps) {
+    // RESULT STEP
+    return (
+      <div className="min-h-screen bg-[#09090b] flex items-center justify-center p-6">
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[rgba(220,38,38,0.12)] flex items-center justify-center mx-auto mb-6">
+            <CheckIcon className="w-8 h-8 text-[#ef4444]" />
           </div>
-        </div>
-        {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-[#0f0f0f] border-b border-zinc-800 px-4 py-4 space-y-4">
-            <a href="#quiz" className="block text-zinc-400 hover:text-amber-500 transition">Diagnóstico</a>
-            <a href="#features" className="block text-zinc-400 hover:text-amber-500 transition">Recursos</a>
-            <a href="#how-it-works" className="block text-zinc-400 hover:text-amber-500 transition">Como Funciona</a>
+          
+          <h3 className="text-xl font-bold mb-2">Diagnóstico Gerado!</h3>
+          <p className="text-sm text-[#a1a1aa] mb-6">Com base nas suas respostas, identificamos pontos críticos de atenção.</p>
+
+          <div className="mb-8 p-6 rounded-xl bg-[#0f0f0f] border border-[#2a2a32]">
+            <div className="text-xs text-[#71717a] mb-2 font-mono">Nível de Risco Estimado</div>
+            <div className="text-4xl font-bold font-mono mb-2" style={{ color: risk.color }}>
+              {risk.text}
+            </div>
+            <div className="h-3 bg-[#1f1f27] rounded-full overflow-hidden">
+              <div 
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: score + '%', background: risk.bg }}
+              />
+            </div>
+          </div>
+
+          <div className="p-5 rounded-xl bg-[#111113] border border-[#2a2a32] mb-6">
+            <p className="text-sm text-[#a1a1aa] mb-4">
+              Agende uma call de 15 minutos para ver a análise completa do seu caso e receber recomendações personalizadas.
+            </p>
             <a 
-              href="#quiz" 
-              className="block bg-amber-500 hover:bg-amber-600 text-black font-semibold px-4 py-2 rounded-lg transition text-center"
+              href={`https://wa.me/5511910376040?text=${encodeURIComponent(
+                `Olá! Acabei de fazer o diagnóstico de segurança da Patolino.Security.\n\n` +
+                `📊 Meu nível de risco: ${risk.text}\n` +
+                `🏢 Empresa: ${formData.company}\n` +
+                `🌐 Site: ${formData.site_url || 'Não informado'}\n\n` +
+                `Gostaria de agendar uma call para ver os resultados e entender como melhorar nossa segurança.`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 w-full py-3.5 rounded-xl text-base font-bold text-white bg-[#25D366] hover:bg-[#20BA5A] transition-all"
             >
-              Fazer Diagnóstico
+              <WhatsAppIcon className="w-5 h-5" />
+              Falar com Especialista no WhatsApp
             </a>
           </div>
-        )}
+
+          <p className="text-xs text-[#52525b]">
+            Sem compromisso • Resposta em até 24h • 100% confidencial
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (showQuiz) {
+    // QUIZ MODE
+    const currentQuestion = QUESTIONS[currentStep - 1]
+    const isFormStep = currentStep > QUESTIONS.length
+
+    return (
+      <div className="min-h-screen bg-[#09090b]">
+        {/* Progress */}
+        <div className="sticky top-0 z-50 bg-[rgba(9,9,11,0.9)] backdrop-blur-lg border-b border-[#1f1f27] p-4">
+          <div className="max-w-lg mx-auto">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-[#71717a] font-mono">Progresso</span>
+              <span className="text-xs text-[#a1a1aa] font-mono">{progress}%</span>
+            </div>
+            <div className="h-1 bg-[#1f1f27] rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-[#dc2626] to-[#ef4444] transition-all duration-300" style={{ width: progress + '%' }} />
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-lg mx-auto p-6 pt-12">
+          {isFormStep ? (
+            // FORM
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <h2 className="text-2xl font-bold mb-6">Seus dados para o diagnóstico</h2>
+              
+              <input
+                type="text"
+                placeholder="Seu nome"
+                required
+                value={formData.name}
+                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full px-4 py-3 rounded-lg bg-[#111113] border border-[#2a2a32] text-white placeholder-[#71717a] focus:border-[#dc2626] focus:outline-none"
+              />
+              
+              <input
+                type="text"
+                placeholder="Nome da empresa"
+                required
+                value={formData.company}
+                onChange={e => setFormData(prev => ({ ...prev, company: e.target.value }))}
+                className="w-full px-4 py-3 rounded-lg bg-[#111113] border border-[#2a2a32] text-white placeholder-[#71717a] focus:border-[#dc2626] focus:outline-none"
+              />
+              
+              <input
+                type="email"
+                placeholder="E-mail corporativo"
+                required
+                value={formData.email}
+                onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full px-4 py-3 rounded-lg bg-[#111113] border border-[#2a2a32] text-white placeholder-[#71717a] focus:border-[#dc2626] focus:outline-none"
+              />
+              
+              <input
+                type="tel"
+                placeholder="Telefone com DDD"
+                required
+                value={formData.phone}
+                onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                className="w-full px-4 py-3 rounded-lg bg-[#111113] border border-[#2a2a32] text-white placeholder-[#71717a] focus:border-[#dc2626] focus:outline-none"
+              />
+              
+              <input
+                type="url"
+                placeholder="Site da empresa (https://...)"
+                value={formData.site_url}
+                onChange={e => setFormData(prev => ({ ...prev, site_url: e.target.value }))}
+                className="w-full px-4 py-3 rounded-lg bg-[#111113] border border-[#2a2a32] text-white placeholder-[#71717a] focus:border-[#dc2626] focus:outline-none"
+              />
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  required
+                  checked={formData.authorize_test}
+                  onChange={e => setFormData(prev => ({ ...prev, authorize_test: e.target.checked }))}
+                  className="mt-1 w-4 h-4 accent-[#dc2626]"
+                />
+                <span className="text-sm text-[#d1d5db] leading-relaxed">
+                  <strong>Declaro que sou responsável pelo site informado acima</strong> e autorizo a realização de testes de segurança controlados.
+                </span>
+              </label>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3.5 rounded-xl text-base font-bold text-white bg-[#dc2626] hover:bg-[#ef4444] transition-all disabled:opacity-50"
+              >
+                {isSubmitting ? 'Processando...' : 'Gerar Meu Diagnóstico →'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCurrentStep(QUESTIONS.length)}
+                className="w-full py-2.5 text-sm text-[#a1a1aa] hover:text-white transition-colors"
+              >
+                ← Voltar
+              </button>
+            </form>
+          ) : (
+            // QUESTION
+            <div key={currentQuestion.id}>
+              <h2 className="text-xl font-bold mb-6">{currentQuestion.question}</h2>
+              
+              <div className="space-y-3">
+                {currentQuestion.options.map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleAnswer(currentQuestion.id, option.value)}
+                    className={`w-full p-4 rounded-lg border text-left transition-all ${
+                      answers[currentQuestion.id as keyof Answers] === option.value
+                        ? 'bg-[rgba(220,38,38,0.12)] border-[#dc2626] text-white'
+                        : 'bg-[#111113] border-[#2a2a32] text-[#d1d5db] hover:border-[#3a3a42]'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+
+              {currentStep > 1 && (
+                <button
+                  onClick={() => setCurrentStep(prev => prev - 1)}
+                  className="mt-6 text-sm text-[#a1a1aa] hover:text-white transition-colors"
+                >
+                  ← Voltar
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // LANDING PAGE
+  return (
+    <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] font-sans">
+      {/* NAV */}
+      <nav className="fixed top-0 w-full z-50 border-b border-[#1f1f27] bg-[rgba(9,9,11,0.7)] backdrop-blur-lg">
+        <div className="max-w-[1180px] mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-[6px] bg-[#dc2626] flex items-center justify-center">
+              <ShieldIcon className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold text-[15px] tracking-tight">
+              Patolino<span className="text-[#ef4444]">.Security</span>
+            </span>
+          </div>
+          <button
+            onClick={() => setShowQuiz(true)}
+            className="text-xs font-semibold tracking-wider uppercase px-5 py-2 rounded-lg bg-[#dc2626] text-white hover:bg-[#ef4444] transition-all"
+          >
+            Agendar Diagnóstico
+          </button>
+        </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent pointer-events-none" />
-        <div className="max-w-7xl mx-auto text-center relative z-10">
-          <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-full px-4 py-2 mb-6">
-            <Shield className="w-4 h-4 text-amber-500" />
-            <span className="text-sm text-amber-500 font-medium">Diagnóstico Gratuito</span>
+      {/* HERO */}
+      <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
+        <div className="relative z-10 max-w-[760px] mx-auto px-6 py-20 text-center">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[rgba(220,38,38,0.12)] border border-[rgba(220,38,38,0.3)] mb-8">
+            <span className="w-1.5 h-1.5 bg-[#f59e0b] rounded-full animate-pulse" />
+            <span className="text-[#f59e0b] text-xs font-medium tracking-wide">
+              Diagnóstico gratuito — restam 3 vagas em maio
+            </span>
           </div>
-          
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-            Descubra as <span className="text-amber-500">portas abertas</span><br />
-            no seu negócio antes que<br />
-            <span className="text-red-500">alguém mal-intencionado</span> as encontre
+
+          <h1 className="text-5xl md:text-6xl font-extrabold leading-tight tracking-tight mb-6">
+            Alguém já está tentando<br />
+            <span className="bg-gradient-to-br from-[#ef4444] via-[#fb923c] to-[#ef4444] bg-clip-text text-transparent">
+              invadir sua empresa.
+            </span>
           </h1>
-          
-          <p className="text-lg sm:text-xl text-zinc-400 max-w-3xl mx-auto mb-8">
-            Em menos de 2 minutos, descubra vulnerabilidades críticas na sua empresa que podem estar expondo dados, clientes e reputação a riscos invisíveis.
+
+          <p className="text-lg text-[#a1a1aa] leading-relaxed max-w-[580px] mx-auto mb-10">
+            Descubra as portas abertas no seu negócio antes que alguém mal-intencionado as encontre. Um vazamento de dados custa em média <strong className="text-white">R$ 21,5 milhões</strong> — e pode fechar sua empresa.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a 
-              href="#quiz"
-              className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-8 py-4 rounded-xl text-lg transition pulse-glow flex items-center gap-2"
+            <button
+              onClick={() => setShowQuiz(true)}
+              className="inline-flex items-center gap-2 text-base font-bold px-8 py-4 rounded-xl bg-[#dc2626] text-white hover:bg-[#ef4444] hover:shadow-[0_0_40px_rgba(220,38,38,0.25)] transition-all animate-pulse"
             >
-              Fazer Diagnóstico Grátis
-              <ArrowRight className="w-5 h-5" />
-            </a>
-            <a 
-              href="#how-it-works"
-              className="text-zinc-400 hover:text-white font-medium px-8 py-4 transition flex items-center gap-2"
-            >
-              <Eye className="w-5 h-5" />
-              Ver como funciona
+              Quero Saber Se Estou Seguro →
+            </button>
+            <a href="#como-funciona" className="text-sm font-medium text-[#71717a] hover:text-[#a1a1aa] transition-colors px-6 py-4">
+              Como funciona ↓
             </a>
           </div>
-          
-          <div className="mt-16 flex flex-wrap items-center justify-center gap-8 text-zinc-500">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-500" />
-              <span>100% Gratuito</span>
+
+          <p className="mt-8 text-[11px] text-[#52525b] tracking-wide">
+            Sem compromisso • Resultado em até 10 dias úteis • 100% confidencial • <span className="text-[#f59e0b]">Apenas 3 vagas restantes</span>
+          </p>
+        </div>
+      </section>
+
+      {/* STATS */}
+      <section className="border-t border-b border-[#1f1f27] bg-[#111113]">
+        <div className="max-w-[1180px] mx-auto px-6 py-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="text-2xl md:text-3xl font-bold bg-gradient-to-br from-[#ef4444] to-[#fb923c] bg-clip-text text-transparent">R$ 21,5M</div>
+              <div className="text-[13px] text-[#71717a] mt-1 leading-snug">Custo médio de um vazamento de dados</div>
             </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-500" />
-              <span>Sem cadastro prévio</span>
+            <div className="text-center">
+              <div className="text-2xl md:text-3xl font-bold bg-gradient-to-br from-[#ef4444] to-[#fb923c] bg-clip-text text-transparent">197 dias</div>
+              <div className="text-[13px] text-[#71717a] mt-1 leading-snug">Até uma invasão ser percebida</div>
             </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-500" />
-              <span>Resultado na hora</span>
+            <div className="text-center">
+              <div className="text-2xl md:text-3xl font-bold bg-gradient-to-br from-[#ef4444] to-[#fb923c] bg-clip-text text-transparent">60%</div>
+              <div className="text-[13px] text-[#71717a] mt-1 leading-snug">Das empresas fecham após um ataque</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl md:text-3xl font-bold bg-gradient-to-br from-[#ef4444] to-[#fb923c] bg-clip-text text-transparent">91%</div>
+              <div className="text-[13px] text-[#71717a] mt-1 leading-snug">Dos ataques começam por e-mail (phishing)</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-[#0f0f0f]">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              O que você vai descobrir
+      {/* RISCO REAL */}
+      <section className="py-24">
+        <div className="max-w-[1180px] mx-auto px-6">
+          <div className="max-w-[640px] mx-auto text-center mb-16">
+            <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[#ef4444] mb-4">O Risco é Real</p>
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight mb-4">
+              O que acontece quando você
+              <span className="bg-gradient-to-br from-[#ef4444] via-[#fb923c] to-[#ef4444] bg-clip-text text-transparent"> não se protege</span>
             </h2>
-            <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
-              Nossa análise identifica os principais vetores de ataque que empresas brasileiras ignoram até ser tarde demais.
+            <p className="text-base text-[#a1a1aa] leading-relaxed">
+              Achar que "não vai acontecer comigo" é o que toda empresa achava antes de ser atacada. O custo de reagir é sempre maior que o de prevenir.
             </p>
           </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+          <div className="grid md:grid-cols-3 gap-4">
+            {/* Card 1 */}
+            <div className="group bg-[#111113] border border-[#2a2a32] rounded-2xl p-8 hover:border-[rgba(220,38,38,0.3)] hover:shadow-[0_0_20px_rgba(220,38,38,0.12)] transition-all">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-5 bg-[rgba(220,38,38,0.1)]">
+                <AlertCircleIcon className="text-[#ef4444]" />
+              </div>
+              <h3 className="text-[17px] font-bold tracking-tight mb-3">Multa LGPD de até 2% do faturamento</h3>
+              <p className="text-sm text-[#a1a1aa] leading-relaxed">Se os dados dos seus clientes vazarem, a Lei Geral de Proteção de Dados pode multar sua empresa em até R$ 50 milhões por infração.</p>
+            </div>
+
+            {/* Card 2 */}
+            <div className="group bg-[#111113] border border-[#2a2a32] rounded-2xl p-8 hover:border-[rgba(220,38,38,0.3)] hover:shadow-[0_0_20px_rgba(220,38,38,0.12)] transition-all">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-5 bg-[rgba(217,119,6,0.1)]">
+                <CartIcon className="text-[#f59e0b]" />
+              </div>
+              <h3 className="text-[17px] font-bold tracking-tight mb-3">Você pode ser processado pessoalmente</h3>
+              <p className="text-sm text-[#a1a1aa] leading-relaxed">Em mais de 100 países, donos e diretores de empresa respondem com o próprio patrimônio por falhas de segurança.</p>
+            </div>
+
+            {/* Card 3 */}
+            <div className="group bg-[#111113] border border-[#2a2a32] rounded-2xl p-8 hover:border-[rgba(220,38,38,0.3)] hover:shadow-[0_0_20px_rgba(220,38,38,0.12)] transition-all">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-5 bg-[rgba(239,68,68,0.1)]">
+                <span className="text-[#ef4444] text-xl">💀</span>
+              </div>
+              <h3 className="text-[17px] font-bold tracking-tight mb-3">60% das empresas fecham em 6 meses</h3>
+              <p className="text-sm text-[#a1a1aa] leading-relaxed">Após um ataque sério, a maioria não consegue se recuperar — perde clientes, reputação e faturamento.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* COMO FUNCIONA */}
+      <section id="como-funciona" className="py-24 bg-[#111113]">
+        <div className="max-w-[1180px] mx-auto px-6">
+          <div className="max-w-[640px] mx-auto text-center mb-16">
+            <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[#ef4444] mb-4">Processo Simples</p>
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight mb-4">
+              Como funciona o
+              <span className="bg-gradient-to-br from-[#ef4444] via-[#fb923c] to-[#ef4444] bg-clip-text text-transparent"> diagnóstico</span>
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
             {[
-              {
-                icon: Bug,
-                title: 'Vulnerabilidades Web',
-                description: 'Portas abertas no seu site que permitem invasão, roubo de dados e sequestro de domínio.',
-              },
-              {
-                icon: Database,
-                title: 'Exposição de Dados',
-                description: 'Informações sensíveis de clientes e negócio vazando na internet sem você saber.',
-              },
-              {
-                icon: Wifi,
-                title: 'Rede Interna',
-                description: 'Wi-Fi corporativo vulnerável, dispositivos sem proteção e acessos não autorizados.',
-              },
-              {
-                icon: Globe,
-                title: 'Presença Digital',
-                description: 'DNS mal configurado, SSL vencido, headers inseguros e rastros expostos.',
-              },
-              {
-                icon: ShieldCheck,
-                title: 'Processos & Políticas',
-                description: 'Ausência de SLA, backups não testados, sem plano de resposta a incidentes.',
-              },
-              {
-                icon: Target,
-                title: 'Vetores de Ataque',
-                description: 'Caminhos que atacantes usam para entrar na sua empresa e como bloqueá-los.',
-              },
-            ].map((feature, i) => (
-              <div key={i} className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 hover:border-amber-500/50 transition">
-                <feature.icon className="w-10 h-10 text-amber-500 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                <p className="text-zinc-400">{feature.description}</p>
+              { step: '01', title: 'Você responde o questionário', desc: '5 perguntas rápidas sobre sua empresa e preocupações de segurança.' },
+              { step: '02', title: 'Nós analisamos seu site', desc: 'Rodamos ferramentas profissionais de segurança para identificar falhas reais.' },
+              { step: '03', title: 'Você recebe o diagnóstico', desc: 'Relatório claro com prioridades + call gratuita para discutir próximos passos.' }
+            ].map((item) => (
+              <div key={item.step} className="bg-[#09090b] rounded-2xl p-8 border border-[#2a2a32]">
+                <div className="text-3xl font-bold text-[#2a2a32] mb-4 font-mono">{item.step}</div>
+                <h3 className="text-lg font-bold mb-2">{item.title}</h3>
+                <p className="text-sm text-[#a1a1aa]">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Como funciona
-            </h2>
-            <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
-              Em 3 passos simples você descobre o nível de risco do seu negócio.
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                step: '01',
-                title: 'Responda o Quiz',
-                description: '6 perguntas rápidas sobre a segurança atual da sua empresa.',
-                icon: Target,
-              },
-              {
-                step: '02',
-                title: 'Veja o Resultado',
-                description: 'Na hora você descobre seu nível de risco: Baixo, Médio ou Alto.',
-                icon: Eye,
-              },
-              {
-                step: '03',
-                title: 'Receba o Plano',
-                description: 'Especialista analisa seu caso e envia recomendações personalizadas.',
-                icon: Rocket,
-              },
-            ].map((item, i) => (
-              <div key={i} className="relative">
-                <div className="text-6xl font-bold text-amber-500/20 absolute -top-4 left-0">{item.step}</div>
-                <div className="pt-8 pl-4">
-                  <item.icon className="w-10 h-10 text-amber-500 mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">{item.title}</h3>
-                  <p className="text-zinc-400">{item.description}</p>
+      {/* OFERTA */}
+      <section className="py-24">
+        <div className="max-w-[1180px] mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* O que você ganha */}
+            <div className="space-y-6">
+              <div>
+                <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[#4ade80] mb-4">O que você ganha</p>
+                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight">
+                  Diagnóstico completo<br />
+                  <span className="bg-gradient-to-br from-[#4ade80] to-[#22c55e] bg-clip-text text-transparent">sem pagar nada</span>
+                </h2>
+              </div>
+
+              <div className="space-y-4">
+                {[
+                  'Mapeamento completo das falhas mais perigosas do seu site',
+                  'Relatório com prioridades claras em linguagem que você entende',
+                  'Análise de pontos de entrada que um atacante usaria',
+                  'Recomendações práticas que você pode aplicar hoje',
+                  'Call gratuita de 15 minutos para discutir os resultados'
+                ].map((item, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <CheckIcon className="w-4 h-4 mt-1 text-[#4ade80] flex-shrink-0" />
+                    <span className="text-sm text-[#d1d5db]">{item}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-4 rounded-xl bg-[rgba(34,197,94,0.06)] border border-[rgba(34,197,94,0.15)]">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckIcon className="w-4 h-4 text-[#4ade80]" />
+                  <span className="text-[13px] font-bold text-[#4ade80]">Seu diagnóstico: R$ 0</span>
+                </div>
+                <p className="text-[12px] text-[#86efac] leading-relaxed">
+                  Isso mesmo — você recebe o diagnóstico completo sem pagar nada. Depois, você decide se quer investir na correção. Sem pegadinha.
+                </p>
+              </div>
+            </div>
+
+            {/* Card de oferta */}
+            <div className="bg-[#09090b] rounded-2xl p-8 border border-[#2a2a32] relative">
+              <div className="absolute -top-3 right-6 bg-[#dc2626] text-white text-[10px] font-bold tracking-wider uppercase px-4 py-1 rounded-full animate-pulse">
+                GRATUITO
+              </div>
+              
+              <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[#f59e0b] mb-3">Oferta por tempo limitado</p>
+              <h3 className="text-2xl font-extrabold tracking-tight mb-2">Diagnóstico de segurança</h3>
+              
+              <div className="flex items-baseline gap-3 mb-4">
+                <span className="text-[13px] text-[#52525b] line-through">R$ 8.000</span>
+                <span className="text-4xl font-extrabold text-[#4ade80]">R$ 0</span>
+              </div>
+
+              <p className="text-sm text-[#a1a1aa] leading-relaxed mb-6">
+                Nós avaliamos seu site, identificamos as falhas mais críticas e te entregamos um relatório com prioridades — sem custo.
+              </p>
+
+              <div className="p-4 rounded-xl bg-[rgba(217,119,6,0.08)] border border-[rgba(217,119,6,0.2)] mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <ClockIcon className="w-4 h-4 text-[#f59e0b]" />
+                  <span className="text-[13px] font-bold text-[#fbbf24]">Vagas encerram em breve</span>
+                </div>
+                <p className="text-[13px] text-[#fcd34d] leading-relaxed">
+                  Apenas 5 empresas por mês recebem o diagnóstico gratuito.
+                </p>
+              </div>
+
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] text-[#71717a]">2 de 5 vagas preenchidas</span>
+                  <span className="text-[11px] font-bold text-[#f59e0b]">3 restantes</span>
+                </div>
+                <div className="h-2 bg-[#1f1f27] rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-[#f59e0b] to-[#ef4444] rounded-full" style={{ width: '40%' }} />
                 </div>
               </div>
-            ))}
+
+              <button
+                onClick={() => setShowQuiz(true)}
+                className="block w-full py-3.5 rounded-xl text-base font-bold text-white bg-[#dc2626] hover:bg-[#ef4444] hover:shadow-[0_0_40px_rgba(220,38,38,0.25)] transition-all text-center"
+              >
+                Garantir Minha Vaga Gratuita →
+              </button>
+              
+              <p className="text-center text-[11px] text-[#52525b] mt-2">
+                Depois que as 5 vagas acabam, essa oferta some.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Quiz Section */}
-      <section id="quiz" className="py-20 px-4 sm:px-6 lg:px-8 bg-[#0f0f0f]">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Diagnóstico de Segurança
+      {/* FAQ */}
+      <section className="py-24 bg-[#111113]">
+        <div className="max-w-[720px] mx-auto px-6">
+          <div className="text-center mb-16">
+            <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[#ef4444] mb-4">Dúvidas</p>
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight">
+              Perguntas
+              <span className="bg-gradient-to-br from-[#ef4444] via-[#fb923c] to-[#ef4444] bg-clip-text text-transparent"> frequentes</span>
             </h2>
-            <p className="text-zinc-400 text-lg">
-              Responda 6 perguntas e descubra o nível de risco do seu negócio.
-            </p>
           </div>
 
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 sm:p-8">
-            {!showForm && !submitted ? (
-              <>
-                {/* Progress bar */}
-                <div className="mb-8">
-                  <div className="flex justify-between text-sm text-zinc-500 mb-2">
-                    <span>Pergunta {quizStep + 1} de {QUIZ_QUESTIONS.length}</span>
-                    <span>{Math.round(((quizStep + 1) / QUIZ_QUESTIONS.length) * 100)}%</span>
-                  </div>
-                  <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-amber-500 transition-all duration-300"
-                      style={{ width: `${((quizStep + 1) / QUIZ_QUESTIONS.length) * 100}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Question */}
-                <div className="mb-8">
-                  {(() => {
-                    const q = QUIZ_QUESTIONS[quizStep];
-                    const Icon = q.icon;
-                    return (
-                      <>
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center">
-                            <Icon className="w-6 h-6 text-amber-500" />
-                          </div>
-                          <span className="text-sm text-amber-500 font-medium">Pergunta {quizStep + 1}</span>
-                        </div>
-                        <h3 className="text-xl sm:text-2xl font-semibold mb-3">
-                          {q.question}
-                        </h3>
-                        <p className="text-zinc-400">
-                          {q.description}
-                        </p>
-                      </>
-                    );
-                  })()}
-                </div>
-
-                {/* Answer buttons */}
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <button
-                    onClick={() => handleAnswer(true)}
-                    className="flex-1 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 font-semibold py-4 px-6 rounded-xl transition flex items-center justify-center gap-2"
-                  >
-                    <CheckCircle className="w-5 h-5" />
-                    Sim
-                  </button>
-                  <button
-                    onClick={() => handleAnswer(false)}
-                    className="flex-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-semibold py-4 px-6 rounded-xl transition flex items-center justify-center gap-2"
-                  >
-                    <X className="w-5 h-5" />
-                    Não
-                  </button>
-                </div>
-              </>
-            ) : submitted ? (
-              /* Result */
-              <div className="text-center">
-                {(() => {
-                  const risk = getRiskLevel(score);
-                  const RiskIcon = risk.icon;
-                  return (
-                    <>
-                      <div className={`w-20 h-20 ${risk.bg} rounded-full flex items-center justify-center mx-auto mb-6`}>
-                        <RiskIcon className={`w-10 h-10 ${risk.color}`} />
-                      </div>
-                      <h3 className="text-2xl font-bold mb-2">
-                        Nível de Risco: <span className={risk.color}>{risk.level}</span>
-                      </h3>
-                      <p className="text-zinc-400 mb-6">
-                        {score >= 20 
-                          ? 'Sua empresa tem vulnerabilidades críticas que precisam de atenção imediata.'
-                          : score >= 10
-                          ? 'Existem pontos de atenção que devem ser avaliados por um especialista.'
-                          : 'Sua empresa está em boa situação, mas sempre há melhorias possíveis.'}
-                      </p>
-
-                      <div className="bg-zinc-800/50 rounded-xl p-4 mb-6 text-left">
-                        <h4 className="font-semibold mb-2">Próximos passos:</h4>
-                        <ul className="text-zinc-400 text-sm space-y-2">
-                          <li className="flex items-start gap-2">
-                            <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                            <span>Um especialista vai analisar seus dados</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                            <span>Você receberá recomendações personalizadas</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                            <span>Scan automático do seu site será realizado</span>
-                          </li>
-                        </ul>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row gap-4">
-                        <a
-                          href={getWhatsAppLink()}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-6 rounded-xl transition flex items-center justify-center gap-2"
-                        >
-                          <Phone className="w-5 h-5" />
-                          Falar no WhatsApp
-                        </a>
-                        <button
-                          onClick={resetQuiz}
-                          className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-semibold py-4 px-6 rounded-xl transition"
-                        >
-                          Fazer Novo Diagnóstico
-                        </button>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            ) : (
-              /* Form */
-              <form onSubmit={handleSubmit}>
-                <div className="text-center mb-6">
-                  {(() => {
-                    const risk = getRiskLevel(score);
-                    const RiskIcon = risk.icon;
-                    return (
-                      <div className="flex items-center justify-center gap-3 mb-4">
-                        <div className={`w-10 h-10 ${risk.bg} rounded-full flex items-center justify-center`}>
-                          <RiskIcon className={`w-5 h-5 ${risk.color}`} />
-                        </div>
-                        <span className="text-lg">
-                          Risco <span className={`font-bold ${risk.color}`}>{risk.level}</span> detectado
-                        </span>
-                      </div>
-                    );
-                  })()}
-                  <p className="text-zinc-400">
-                    Preencha seus dados para receber o diagnóstico completo.
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-zinc-400 mb-1">Nome completo</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 focus:outline-none focus:border-amber-500 transition"
-                      placeholder="Seu nome"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-zinc-400 mb-1">Empresa</label>
-                    <div className="relative">
-                      <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-                      <input
-                        type="text"
-                        required
-                        value={formData.company}
-                        onChange={e => setFormData(prev => ({ ...prev, company: e.target.value }))}
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:border-amber-500 transition"
-                        placeholder="Nome da empresa"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-zinc-400 mb-1">E-mail</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-                      <input
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:border-amber-500 transition"
-                        placeholder="seu@email.com"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-zinc-400 mb-1">WhatsApp</label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-                      <input
-                        type="tel"
-                        required
-                        value={formData.phone}
-                        onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:border-amber-500 transition"
-                        placeholder="(11) 99999-9999"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-zinc-400 mb-1">Site da empresa</label>
-                    <div className="relative">
-                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-                      <input
-                        type="url"
-                        required
-                        value={formData.site_url}
-                        onChange={e => setFormData(prev => ({ ...prev, site_url: e.target.value }))}
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:border-amber-500 transition"
-                        placeholder="https://suaempresa.com.br"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 pt-2">
-                    <input
-                      type="checkbox"
-                      id="authorize"
-                      required
-                      checked={formData.authorize_test}
-                      onChange={e => setFormData(prev => ({ ...prev, authorize_test: e.target.checked }))}
-                      className="mt-1 w-5 h-5 accent-amber-500"
-                    />
-                    <label htmlFor="authorize" className="text-sm text-zinc-400">
-                      Autorizo a realização de um teste de segurança não invasivo no meu site e aceito receber o diagnóstico por e-mail/WhatsApp.
-                    </label>
-                  </div>
-                </div>
-
+          <div className="space-y-3">
+            {[
+              { q: 'O diagnóstico é realmente gratuito?', a: 'Sim. Você não paga nada pelo diagnóstico. Se quiser contratar nossos serviços para corrigir as falhas, aí sim conversamos sobre valores — mas o diagnóstico em si é 100% gratuito.' },
+              { q: 'Vocês vão invadir meu site?', a: 'Não. Fazemos testes controlados que não afetam a operação do seu site. Identificamos vulnerabilidades sem explorá-las de forma destrutiva.' },
+              { q: 'Quanto tempo demora?', a: 'O diagnóstico leva de 5 a 10 dias úteis. Você recebe um relatório completo com todas as falhas encontradas e recomendações.' },
+              { q: 'Meus dados estão seguros?', a: 'Sim. Tudo o que compartilhar conosco é 100% confidencial. Não vendemos, compartilhamos ou divulgamos suas informações.' },
+              { q: 'Por que apenas 5 vagas por mês?', a: 'Porque cada diagnóstico leva tempo e atenção dedicada. Queremos entregar qualidade, não volume. Quando as vagas acabam, só no mês seguinte.' }
+            ].map((faq, i) => (
+              <div key={i} className="bg-[#09090b] border border-[#2a2a32] rounded-xl overflow-hidden">
                 <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full mt-6 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-500/50 text-black font-bold py-4 px-6 rounded-xl transition flex items-center justify-center gap-2"
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full flex items-center justify-between p-5 text-left"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                      Enviando...
-                    </>
-                  ) : (
-                    <>
-                      Receber Diagnóstico Completo
-                      <ArrowRight className="w-5 h-5" />
-                    </>
-                  )}
+                  <span className="font-semibold text-[15px]">{faq.q}</span>
+                  <span className="text-[#71717a] text-xl">{openFaq === i ? '−' : '+'}</span>
                 </button>
-              </form>
-            )}
+                {openFaq === i && (
+                  <div className="px-5 pb-5 text-sm text-[#a1a1aa] leading-relaxed border-t border-[#2a2a32] pt-4">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-zinc-800">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <Shield className="w-6 h-6 text-amber-500" />
-              <span className="font-bold">Patolino<span className="text-amber-500">.Security</span></span>
+      {/* CTA FINAL */}
+      <section className="py-24">
+        <div className="max-w-[640px] mx-auto px-6 text-center">
+          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight mb-6">
+            Ainda tem dúvida se precisa de segurança?
+          </h2>
+          <p className="text-lg text-[#a1a1aa] mb-8">
+            A resposta é: sim, precisa. Toda empresa que lida com dados de clientes precisa de segurança. A única pergunta real é: você vai descobrir as falhas antes ou depois de um ataque?
+          </p>
+          <button
+            onClick={() => setShowQuiz(true)}
+            className="inline-flex items-center gap-2 text-base font-bold px-8 py-4 rounded-xl bg-[#dc2626] text-white hover:bg-[#ef4444] hover:shadow-[0_0_40px_rgba(220,38,38,0.25)] transition-all"
+          >
+            Descobrir Minhas Falhas Agora →
+          </button>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="border-t border-[#1f1f27] py-10">
+        <div className="max-w-[1180px] mx-auto px-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-[3px] bg-[#dc2626] flex items-center justify-center">
+              <ShieldIcon className="w-3 h-3 text-white" />
             </div>
-            <p className="text-zinc-500 text-sm text-center">
-              © 2026 Patolino.Security. Todos os direitos reservados.
-            </p>
-            <div className="flex items-center gap-4">
-              <a href="#" className="text-zinc-500 hover:text-amber-500 transition">
-                <Globe className="w-5 h-5" />
-              </a>
-            </div>
+            <span className="text-[13px] font-semibold">
+              Patolino<span className="text-[#ef4444]">.Security</span>
+            </span>
           </div>
+          <p className="text-xs text-[#52525b]">Segurança que funciona. Sem desculpas.</p>
+          <p className="text-xs text-[#3f3f46]">© 2025 Patolino.Security</p>
         </div>
       </footer>
     </div>
   )
 }
-
-export default App
