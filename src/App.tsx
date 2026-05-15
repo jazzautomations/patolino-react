@@ -256,7 +256,7 @@ export default function App() {
             </p>
             <a 
               href={`https://wa.me/5511910376040?text=${encodeURIComponent(
-                `Olá! Acabei de fazer o diagnóstico de segurança da Patolino.Security.\n\n` +
+                `Olá! Acabei de fazer o diagnóstico de segurança da Jazz Sec - Attack.\n\n` +
                 `📊 Meu nível de risco: ${risk.text}\n` +
                 `🏢 Empresa: ${formData.company}\n` +
                 `🌐 Site: ${formData.site_url || 'Não informado'}\n\n` +
@@ -425,7 +425,7 @@ export default function App() {
               <ShieldIcon className="w-4 h-4 text-white" />
             </div>
             <span className="font-bold text-[15px] tracking-tight">
-              Patolino<span className="text-[#ef4444]">.Security</span>
+              Jazz Sec - Attack
             </span>
           </div>
           <button
@@ -729,11 +729,11 @@ export default function App() {
               <ShieldIcon className="w-3 h-3 text-white" />
             </div>
             <span className="text-[13px] font-semibold">
-              Patolino<span className="text-[#ef4444]">.Security</span>
+              Jazz Sec - Attack
             </span>
           </div>
           <p className="text-xs text-[#52525b]">Segurança que funciona. Sem desculpas.</p>
-          <p className="text-xs text-[#3f3f46]">© 2025 Patolino.Security</p>
+          <p className="text-xs text-[#3f3f46]">© 2025 Jazz Sec - Attack</p>
         </div>
       </footer>
     </div>
