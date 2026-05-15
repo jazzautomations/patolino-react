@@ -765,7 +765,7 @@ export default function App() {
             onClick={() => { setCurrentStep(1); setShowQuiz(true); }}
             className="btn btn-primary px-6 py-2.5 rounded-xl text-xs"
           >
-            Iniciar Auditoria
+            Auditar Grátis
           </motion.button>
         </div>
       </nav>
@@ -785,7 +785,7 @@ export default function App() {
           >
             <StatusDot color="warning" />
             <span className="text-accent text-xs font-bold uppercase tracking-wider">
-              Vagas limitadas para {new Date().toLocaleDateString('pt-BR', { month: 'long' })}
+              GRÁTIS COM IA · Oferta por tempo limitado — Vagas se encerrando
             </span>
           </motion.div>
 
@@ -795,10 +795,10 @@ export default function App() {
             transition={{ delay: 0.1 }}
             className="text-5xl sm:text-6xl md:text-8xl font-black leading-[0.9] tracking-tighter mb-8"
           >
-            <span className="text-white">AUDITORIA DE</span>
+            <span className="text-white">HACKERS CUSTAM</span>
             <br />
             <span className="text-gradient-fire text-glow-primary inline-block">
-              SEGURANÇA
+              R$ 21,5 MILHÕES
             </span>
           </motion.h1>
 
@@ -808,8 +808,7 @@ export default function App() {
             transition={{ delay: 0.2 }}
             className="text-lg md:text-xl text-zinc-400 leading-relaxed max-w-[640px] mx-auto mb-12"
           >
-            Descubra as brechas críticas no seu negócio antes que agentes mal-intencionados 
-            as explorem. <span className="text-white font-medium">Mapeamento técnico e intrusão controlada.</span>
+            Auditoria completa de segurança com IA que mapeia cada brecha da sua empresa — antes que hackers a encontrem. <span className="text-white font-medium">Esse serviço custa R$ 15.000+ no mercado. Hoje, gratuito por tempo limitado.</span>
           </motion.p>
 
           <motion.div 
@@ -824,7 +823,7 @@ export default function App() {
               onClick={() => { setCurrentStep(1); setShowQuiz(true); }}
               className="btn btn-primary px-10 py-5 rounded-2xl text-sm shimmer"
             >
-              SOLICITAR SCAN GRATUITO <ArrowRight className="w-4 h-4" />
+              GARANTIR MINHA VAGA GRATUITA <ArrowRight className="w-4 h-4" />
             </motion.button>
             
             <a href="#how" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-200 transition-colors p-4">
@@ -839,10 +838,10 @@ export default function App() {
         <div className="max-w-[1280px] mx-auto px-6 py-20">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
             {[
-              { label: "Custo Médio de Vazamento", value: "R$ 21.5M", icon: <BarChart3 /> },
-              { label: "Dias até Detecção", value: "197", icon: <Eye /> },
-              { label: "Empresas que Fecham", value: "60%", icon: <AlertCircle /> },
-              { label: "Ataques via Phishing", value: "91%", icon: <Bug /> }
+              { label: "Custo Médio p/ Empresa", value: "R$ 21.5M", icon: <BarChart3 /> },
+              { label: "Dias Sem Saber do Ataque", value: "197", icon: <Eye /> },
+              { label: "Fecham Após 1 Ataque", value: "60%", icon: <AlertCircle /> },
+              { label: "Começam com 1 E-mail", value: "91%", icon: <Bug /> }
             ].map((stat, i) => (
               <motion.div 
                 key={i}
@@ -879,27 +878,27 @@ export default function App() {
             Riscos Reais
           </span>
           <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter">
-            O QUE ESTÁ EM JOGO
+            O CUSTO DE NÃO AGIR HOJE
           </h2>
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-6">
           {[
-            { 
-              title: "Multas LGPD", 
-              desc: "Até 2% do faturamento ou R$ 50 milhões por cada infração detectada.",
+            {
+              title: "Até R$ 50 Milhões em Multas",
+              desc: "A LGPD prevê multas de até 2% do faturamento anual — sem teto. Um único vazamento pode consumir o lucro de anos.",
               icon: <AlertCircle className="text-primary" />,
               gradient: "from-primary-600/20 to-transparent"
             },
-            { 
-              title: "Responsabilidade Civil", 
-              desc: "Diretores respondem com patrimônio pessoal por falhas de segurança negligenciadas.",
+            {
+              title: "Seu Patrimônio em Jogo",
+              desc: "Sócios e diretores respondem pessoalmente por negligência em segurança. Bens pessoais, casa, investimentos — tudo pode ser acionado.",
               icon: <Lock className="text-accent" />,
               gradient: "from-accent/20 to-transparent"
             },
-            { 
-              title: "Dano Reputacional", 
-              desc: "60% das empresas encerram atividades em até 6 meses após um ataque crítico.",
+            {
+              title: "60% Fecham em 6 Meses",
+              desc: "Mais da metade das empresas atacadas não sobrevive 6 meses. Clientes somem. Contratos caem. Reputação não tem preço — mas tem custo.",
               icon: <BarChart3 className="text-primary" />,
               gradient: "from-primary-600/20 to-transparent"
             }
@@ -942,28 +941,28 @@ export default function App() {
             Fluxo Operacional
           </span>
           <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter">
-            METODOLOGIA DE AUDITORIA
+            COMO FUNCIONA A AUDITORIA GRATUITA
           </h2>
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-12">
           {[
-            { 
-              step: "01", 
-              title: "Questionário de Vetores", 
-              desc: "Análise inicial dos ativos expostos e vetores de ataque potenciais.",
+            {
+              step: "01",
+              title: "Diagnóstico do Negócio",
+              desc: "5 perguntas que mapeiam os riscos específicos da sua empresa em menos de 2 minutos.",
               icon: <Terminal />
             },
-            { 
-              step: "02", 
-              title: "Varredura de Agentes", 
-              desc: "Nossos agentes de IA executam testes de intrusão e mapeamento de portas.",
+            {
+              step: "02",
+              title: "IA Executa o Pentest",
+              desc: "11 agentes de IA simultâneos varrem seu perímetro digital — portas, injeções, acessos, dados expostos.",
               icon: <Cpu />
             },
-            { 
-              step: "03", 
-              title: "Entrega Técnica", 
-              desc: "Call de 15 min para entrega do relatório consolidado e plano de mitigação.",
+            {
+              step: "03",
+              title: "Relatório + Plano de Ação",
+              desc: "Você recebe um relatório técnico completo + call de 15 min para priorizar o que resolver primeiro.",
               icon: <Activity />
             }
           ].map((item, i) => (
@@ -1009,12 +1008,11 @@ export default function App() {
             </motion.div>
             
             <h2 className="text-3xl md:text-5xl font-black text-white mb-6 tracking-tight">
-              VULNERABILIDADES<br />NÃO ESPERAM.
+              ESSA OFERTA<br />SE ENCERRA EM BREVE.
             </h2>
             
             <p className="text-zinc-400 mb-10 max-w-md mx-auto">
-              Cada dia sem proteção é uma oportunidade para atacantes. 
-              Identifique as brechas antes que seja tarde demais.
+              Empresas pagam R$ 15.000 a R$ 25.000 por esse serviço. Enquanto essa oferta estiver ativa, você acessa gratuitamente com IA. Não deixe para quando já tiver acontecido.
             </p>
             
             <motion.button
@@ -1023,7 +1021,7 @@ export default function App() {
               onClick={() => { setCurrentStep(1); setShowQuiz(true); }}
               className="btn btn-primary px-12 py-5 rounded-2xl text-sm shimmer"
             >
-              BLOQUEAR ATAQUES AGORA <Shield className="w-4 h-4" />
+              QUERO MINHA AUDITORIA GRATUITA <Shield className="w-4 h-4" />
             </motion.button>
           </div>
         </motion.div>
